@@ -1,0 +1,26 @@
+schema_version: "1.0"
+organ: META
+organ_name: Meta
+repo: organvm-mcp-server
+org: meta-organvm
+
+metadata:
+  description: "MCP server exposing full ORGANVM system context to Claude Code sessions"
+  implementation_status: ACTIVE
+  tier: infrastructure
+  promotion_status: LOCAL
+  documentation_status: DEPLOYED
+
+produces: []
+
+consumes:
+  - source: meta-organvm/organvm-corpvs-testamentvm
+    artifact: registry-v2.json
+  - source: meta-organvm/organvm-engine
+    artifact: seed discovery, governance rules, dependency graph
+  - source: organvm-iv-taxis/orchestration-start-here
+    artifact: event-catalog.yaml
+
+subscriptions:
+  - event: governance.updated
+    action: reload registry and seed data
