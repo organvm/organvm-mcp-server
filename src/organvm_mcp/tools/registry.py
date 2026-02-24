@@ -35,8 +35,8 @@ def query_registry(
     matches = list_repos(
         registry,
         organ=organ,
-        status=promotion_status,
-        tier=tier
+        promotion_status=promotion_status,
+        tier=tier,
     )
     
     # Apply name pattern if provided
