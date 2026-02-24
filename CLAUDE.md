@@ -71,3 +71,23 @@ Add to `~/.claude/mcp.json`:
 
 Part of **ORGAN Meta (Meta)** under the `meta-organvm` GitHub organization.
 Sibling packages: organvm-engine, schema-definitions, system-dashboard, alchemia-ingestvm.
+
+<!-- ORGANVM:AUTO:START -->
+## System Context (auto-generated — do not edit)
+
+**Organ:** META-ORGANVM (Meta) | **Tier:** infrastructure | **Status:** LOCAL
+**Org:** `unknown` | **Repo:** `organvm-mcp-server`
+
+### Edges
+- **Consumes** ← `meta-organvm/organvm-corpvs-testamentvm`: registry-v2.json
+- **Consumes** ← `meta-organvm/organvm-engine`: seed discovery, governance rules, dependency graph
+- **Consumes** ← `organvm-iv-taxis/orchestration-start-here`: event-catalog.yaml
+
+### Siblings in Meta
+`.github`, `organvm-corpvs-testamentvm`, `alchemia-ingestvm`, `schema-definitions`, `organvm-engine`, `system-dashboard`
+
+### Governance
+- *Standard ORGANVM governance applies*
+
+*Last synced: 2026-02-24T01:01:15Z*
+<!-- ORGANVM:AUTO:END -->
