@@ -224,6 +224,14 @@ TOOLS = [
             },
         },
     ),
+    Tool(
+        name="organvm_pitch_status",
+        description=(
+            "Get pitch deck coverage across the system — how many repos "
+            "have pitch decks (bespoke vs generated), broken down by organ."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
     # Context tools
     Tool(
         name="organvm_get_context",
@@ -264,6 +272,7 @@ _DISPATCH = {
     "organvm_omega_status": lambda args: health.omega_status(),
     "organvm_ci_health": lambda args: health.ci_health(),
     "organvm_upcoming_deadlines": lambda args: health.deadlines(**args),
+    "organvm_pitch_status": lambda args: health.pitch_status(),
     "organvm_get_context": lambda args: context.get_context(**args),
 }
 

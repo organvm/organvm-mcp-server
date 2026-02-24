@@ -1,7 +1,7 @@
-"""System health and omega status tools.
+"""System health, omega status, and pitch deck coverage tools.
 
-Provides aggregate health metrics and omega criteria tracking
-for the full ORGANVM system.
+Provides aggregate health metrics, omega criteria tracking,
+and pitch deck status for the full ORGANVM system.
 """
 
 from __future__ import annotations
@@ -134,4 +134,73 @@ def deadlines(days: int = 30) -> dict[str, Any]:
         "total_all": len(all_deadlines),
         "total_shown": len(filtered),
         "window_days": days,
+    }
+
+
+def pitch_status() -> dict[str, Any]:
+    """Get pitch deck coverage across the system.
+
+    Scans the workspace for repos that have pitch decks (bespoke or
+    generated) and reports coverage by organ and tier.
+
+    Returns:
+        {"total_eligible": int, "with_decks": int, "bespoke": int,
+         "generated": int, "missing": int, "by_organ": {...}}
+    """
+    from organvm_mcp.data.loader import load_registry
+    from organvm_engine.registry.query import all_repos
+    from organvm_engine.git.superproject import REGISTRY_KEY_MAP
+    from organvm_engine.pitchdeck import PITCH_MARKER
+    from pathlib import Path
+    import os
+
+    registry = load_registry()
+    ws = Path(os.environ.get("ORGANVM_WORKSPACE_DIR", str(Path.home() / "Workspace")))
+
+    excluded_tiers = {"infrastructure", "archive"}
+    total_eligible = 0
+    with_decks = 0
+    bespoke_count = 0
+    generated_count = 0
+    by_organ: dict[str, dict[str, int]] = {}
+
+    for organ_key, repo in all_repos(registry):
+        tier = repo.get("tier", "standard")
+        if tier in excluded_tiers:
+            continue
+
+        total_eligible += 1
+        repo_name = repo.get("name", "")
+        organ_dir = REGISTRY_KEY_MAP.get(organ_key, "")
+
+        if organ_key not in by_organ:
+            by_organ[organ_key] = {"eligible": 0, "with_deck": 0, "bespoke": 0, "generated": 0}
+        by_organ[organ_key]["eligible"] += 1
+
+        # Check for pitch deck
+        for subdir in ("docs/pitch", "docs/pitch-deck"):
+            pitch_file = ws / organ_dir / repo_name / subdir / "index.html"
+            if pitch_file.exists():
+                with_decks += 1
+                by_organ[organ_key]["with_deck"] += 1
+                try:
+                    content = pitch_file.read_text(encoding="utf-8")
+                    if PITCH_MARKER in content:
+                        generated_count += 1
+                        by_organ[organ_key]["generated"] += 1
+                    else:
+                        bespoke_count += 1
+                        by_organ[organ_key]["bespoke"] += 1
+                except (OSError, UnicodeDecodeError):
+                    pass
+                break
+
+    return {
+        "total_eligible": total_eligible,
+        "with_decks": with_decks,
+        "bespoke": bespoke_count,
+        "generated": generated_count,
+        "missing": total_eligible - with_decks,
+        "coverage_pct": round(with_decks / total_eligible * 100, 1) if total_eligible > 0 else 0,
+        "by_organ": by_organ,
     }
