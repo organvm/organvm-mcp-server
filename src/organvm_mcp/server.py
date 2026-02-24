@@ -193,9 +193,36 @@ TOOLS = [
         name="organvm_omega_status",
         description=(
             "Get omega criteria progress — 17 criteria across 5 horizons "
-            "tracking the system's transition from construction to occupation."
+            "tracking the system's transition from construction to occupation. "
+            "Returns real evaluated data from soak tests and registry."
         ),
         inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_ci_health",
+        description=(
+            "Get CI health summary from latest soak test data. "
+            "Shows pass/fail counts, failures categorized by organ, "
+            "and identifies phantom failures from schedule-only workflows."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_upcoming_deadlines",
+        description=(
+            "Get upcoming deadlines from the rolling-todo — funding applications, "
+            "submissions, and time-sensitive tasks sorted by date with urgency levels."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "days": {
+                    "type": "integer",
+                    "description": "Number of days to look ahead (default 30)",
+                    "default": 30,
+                },
+            },
+        },
     ),
     # Context tools
     Tool(
@@ -235,6 +262,8 @@ _DISPATCH = {
     "organvm_get_dependency_graph": lambda args: graph.get_dependency_graph(**args),
     "organvm_system_health": lambda args: health.system_health(),
     "organvm_omega_status": lambda args: health.omega_status(),
+    "organvm_ci_health": lambda args: health.ci_health(),
+    "organvm_upcoming_deadlines": lambda args: health.deadlines(**args),
     "organvm_get_context": lambda args: context.get_context(**args),
 }
 

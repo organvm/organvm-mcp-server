@@ -70,39 +70,68 @@ def omega_status() -> dict[str, Any]:
     """Get omega criteria progress.
 
     The omega framework defines 17 criteria across 5 horizons for the
-    system's transition from construction to occupation.
+    system's transition from construction to occupation. Uses the real
+    omega evaluator from organvm-engine.
 
     Returns:
-        {"criteria_met": int, "criteria_total": 17,
-         "percentage": float,
-         "horizons": [...],
-         "next_milestone": {"id": int, "name": "...", "estimated_date": "..."}}
+        {"score": int, "total": 17, "in_progress": int,
+         "criteria": [...], "soak": {...}, "generated": "ISO 8601"}
     """
-    # For now, providing a structured summary based on the 17 criteria model
-    # TODO: implement real parsing of omega-evidence-map.md
-    
+    from organvm_mcp.data.loader import load_registry
+    from organvm_engine.omega.scorecard import evaluate
+
+    registry = load_registry()
+    scorecard = evaluate(registry=registry)
+    return scorecard.to_dict()
+
+
+def ci_health() -> dict[str, Any]:
+    """Get CI health summary from latest soak data.
+
+    Categorizes CI failures by organ and identifies phantom failures
+    (schedule-only workflows).
+
+    Returns:
+        {"date": str, "total_checked": int, "passing": int,
+         "failing": int, "pass_rate": float,
+         "by_organ": {...}, "phantom_candidates": [...]}
+    """
+    from organvm_engine.ci.triage import triage
+
+    report = triage()
+    return report.to_dict()
+
+
+def deadlines(days: int = 30) -> dict[str, Any]:
+    """Get upcoming deadlines from the rolling-todo.
+
+    Parses deadline dates from the corpus rolling-todo.md and returns
+    items within the specified window.
+
+    Args:
+        days: Number of days to look ahead (default 30).
+
+    Returns:
+        {"deadlines": [...], "total": int, "window_days": int}
+    """
+    from organvm_engine.deadlines.parser import parse_deadlines, filter_upcoming
+
+    all_deadlines = parse_deadlines()
+    filtered = filter_upcoming(all_deadlines, days=days)
+
     return {
-        "criteria_met": 8,
-        "criteria_total": 17,
-        "percentage": 47.0,
-        "horizons": [
+        "deadlines": [
             {
-                "name": "H1: Prove It Works", 
-                "timeline": "Days 1-30",
-                "criteria": [
-                    {"id": 1, "name": "Soak test complete", "status": "IN_PROGRESS"},
-                    {"id": 2, "name": "Registry V2 valid", "status": "MET"},
-                    {"id": 3, "name": "All 8 organs mapped", "status": "MET"}
-                ]
-            },
-            {
-                "name": "H2: Unified Workflow",
-                "timeline": "Days 31-60",
-                "criteria": [
-                    {"id": 4, "name": "Cross-repo awareness", "status": "IN_PROGRESS"},
-                    {"id": 5, "name": "Shared CI actions", "status": "IN_PROGRESS"}
-                ]
+                "item_id": d.item_id,
+                "description": d.description,
+                "date": d.deadline_date.isoformat(),
+                "days_remaining": d.days_remaining,
+                "urgency": d.urgency,
+                "approximate": d.approximate,
             }
+            for d in filtered
         ],
-        "next_milestone": {"id": 1, "name": "Soak test complete", "estimated_date": "2026-03-18"}
+        "total_all": len(all_deadlines),
+        "total_shown": len(filtered),
+        "window_days": days,
     }

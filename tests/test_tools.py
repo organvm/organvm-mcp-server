@@ -167,12 +167,61 @@ class TestHealthTools:
         assert "promotion_distribution" in res
         assert "timestamp" in res
 
-    def test_omega_status_returns_structure(self):
+    @patch("organvm_engine.omega.scorecard.evaluate")
+    @patch("organvm_mcp.data.loader.load_registry")
+    def test_omega_status_returns_structure(self, mock_reg, mock_eval, mock_registry_data):
+        from organvm_engine.omega.scorecard import OmegaScorecard, OmegaCriterion, SoakStreak
+        mock_reg.return_value = mock_registry_data
+        mock_eval.return_value = OmegaScorecard(
+            criteria=[
+                OmegaCriterion(id=i, name=f"C{i}", horizon="H1",
+                               measurement="test", auto=False,
+                               status="MET" if i == 6 else "NOT_MET", value="x")
+                for i in range(1, 18)
+            ],
+            soak=SoakStreak(total_snapshots=8, streak_days=8),
+            generated="2026-02-24T00:00:00",
+        )
         res = health.omega_status()
-        assert "criteria_met" in res
-        assert "criteria_total" in res
-        assert res["criteria_total"] == 17
-        assert "horizons" in res
+        assert "score" in res
+        assert "total" in res
+        assert res["total"] == 17
+        assert "criteria" in res
+        assert len(res["criteria"]) == 17
+        assert "soak" in res
+        assert "generated" in res
+
+
+    @patch("organvm_engine.ci.triage.triage")
+    def test_ci_health(self, mock_triage):
+        from organvm_engine.ci.triage import CITriageReport
+        mock_triage.return_value = CITriageReport(
+            date="2026-02-23",
+            total_checked=77,
+            passing=52,
+            failing=25,
+            pass_rate=0.675,
+            by_organ={"ORGAN-I": [{"name": "repo-a"}]},
+            phantom_candidates=[".github"],
+        )
+        res = health.ci_health()
+        assert res["failing"] == 25
+        assert "ORGAN-I" in res["by_organ"]
+
+    @patch("organvm_engine.deadlines.parser.filter_upcoming")
+    @patch("organvm_engine.deadlines.parser.parse_deadlines")
+    def test_deadlines(self, mock_parse, mock_filter):
+        from datetime import date
+        from organvm_engine.deadlines.parser import Deadline
+        mock_deadlines = [
+            Deadline(item_id="F4", description="Submit NEH",
+                     deadline_date=date(2026, 3, 6)),
+        ]
+        mock_parse.return_value = mock_deadlines
+        mock_filter.return_value = mock_deadlines
+        res = health.deadlines(days=30)
+        assert res["total_shown"] == 1
+        assert res["deadlines"][0]["item_id"] == "F4"
 
 
 class TestContextTools:
