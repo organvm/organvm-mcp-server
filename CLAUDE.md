@@ -89,5 +89,5 @@ Sibling packages: organvm-engine, schema-definitions, system-dashboard, alchemia
 ### Governance
 - *Standard ORGANVM governance applies*
 
-*Last synced: 2026-02-24T01:01:15Z*
+*Last synced: 2026-02-24T12:41:28Z*
 <!-- ORGANVM:AUTO:END -->
