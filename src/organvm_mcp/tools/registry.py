@@ -28,9 +28,10 @@ def query_registry(
     Returns:
         {"repos": [...], "total": int, "filters_applied": {...}}
     """
-    from organvm_mcp.data.loader import load_registry
     from organvm_engine.registry.query import list_repos
-    
+
+    from organvm_mcp.data.loader import load_registry
+
     registry = load_registry()
     matches = list_repos(
         registry,
@@ -38,15 +39,15 @@ def query_registry(
         promotion_status=promotion_status,
         tier=tier,
     )
-    
+
     # Apply name pattern if provided
     if name_pattern:
         pat = name_pattern.lower()
         matches = [(o, r) for o, r in matches if pat in r.get("name", "").lower()]
-        
+
     total = len(matches)
     results = [repo for _, repo in matches[:limit]]
-    
+
     return {
         "repos": results,
         "total": total,
@@ -55,8 +56,8 @@ def query_registry(
             "tier": tier,
             "promotion_status": promotion_status,
             "name_pattern": name_pattern,
-            "limit": limit
-        }
+            "limit": limit,
+        },
     }
 
 
@@ -71,23 +72,27 @@ def get_repo(org: str, name: str) -> dict[str, Any]:
         Full repo dict from registry including all metadata, launch_metrics,
         dependencies, and current status. Returns {"error": "..."} if not found.
     """
-    from organvm_mcp.data.loader import load_registry
     from organvm_engine.registry.query import find_repo
-    
+
+    from organvm_mcp.data.loader import load_registry
+
     registry = load_registry()
     result = find_repo(registry, name)
-    
+
     if not result:
         return {"error": f"Repository '{name}' not found in registry"}
-        
+
     organ_key, repo = result
-    # Ensure org matches if provided (registry doesn't always have org per repo, 
+    # Ensure org matches if provided (registry doesn't always have org per repo,
     # but we can check the organ's organization)
     organ_data = registry.get("organs", {}).get(organ_key, {})
-    if organ_data.get("organization") != org:
-        # Fallback check if repo has org field
-        if repo.get("org") != org:
-            return {"error": f"Repository '{name}' found in {organ_key} but organization mismatch (expected {org})"}
+    if organ_data.get("organization") != org and repo.get("org") != org:
+        return {
+            "error": (
+                f"Repository '{name}' found in {organ_key} but "
+                f"organization mismatch (expected {org})"
+            ),
+        }
 
     return {**repo, "organ": organ_key}
 
@@ -103,24 +108,28 @@ def list_organs() -> dict[str, Any]:
         ]}
     """
     from organvm_mcp.data.loader import load_registry
-    
+
     registry = load_registry()
     organs = []
-    
+
     for key, data in registry.get("organs", {}).items():
         repos = data.get("repositories", [])
-        organs.append({
-            "key": key,
-            "name": data.get("name"),
-            "org": data.get("organization"),
-            "repo_count": len(repos),
-            "flagship_count": len([r for r in repos if r.get("tier") == "flagship"]),
-            "standard_count": len([r for r in repos if r.get("tier") == "standard"]),
-            "infrastructure_count": len([r for r in repos if r.get("tier") == "infrastructure"]),
-            "status_distribution": {
-                status: len([r for r in repos if r.get("promotion_status") == status])
-                for status in ["LOCAL", "CANDIDATE", "PUBLIC_PROCESS", "GRADUATED", "ARCHIVED"]
-            }
-        })
-        
+        organs.append(
+            {
+                "key": key,
+                "name": data.get("name"),
+                "org": data.get("organization"),
+                "repo_count": len(repos),
+                "flagship_count": len([r for r in repos if r.get("tier") == "flagship"]),
+                "standard_count": len([r for r in repos if r.get("tier") == "standard"]),
+                "infrastructure_count": len(
+                    [r for r in repos if r.get("tier") == "infrastructure"],
+                ),
+                "status_distribution": {
+                    status: len([r for r in repos if r.get("promotion_status") == status])
+                    for status in ["LOCAL", "CANDIDATE", "PUBLIC_PROCESS", "GRADUATED", "ARCHIVED"]
+                },
+            },
+        )
+
     return {"organs": organs}

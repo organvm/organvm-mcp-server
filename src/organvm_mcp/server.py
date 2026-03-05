@@ -14,9 +14,9 @@ from __future__ import annotations
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent, Tool
 
-from organvm_mcp.tools import registry, seeds, graph, health, context
+from organvm_mcp.tools import context, graph, health, registry, seeds
 
 server = Server("organvm")
 
@@ -36,7 +36,9 @@ TOOLS = [
             "properties": {
                 "organ": {
                     "type": "string",
-                    "description": "Filter by organ key (ORGAN-I through ORGAN-VII, META, PERSONAL)",
+                    "description": (
+                        "Filter by organ key (ORGAN-I through ORGAN-VII, META, PERSONAL)"
+                    ),
                 },
                 "tier": {
                     "type": "string",
@@ -77,7 +79,9 @@ TOOLS = [
     ),
     Tool(
         name="organvm_list_organs",
-        description="List all 8 ORGANVM organs with summary statistics (repo count, tiers, edges).",
+        description=(
+            "List all 8 ORGANVM organs with summary statistics (repo count, tiers, edges)."
+        ),
         inputSchema={"type": "object", "properties": {}},
     ),
     # Seed tools
@@ -128,7 +132,9 @@ TOOLS = [
     ),
     Tool(
         name="organvm_list_events",
-        description="List all event types in the ORGANVM event catalog with producers and consumers.",
+        description=(
+            "List all event types in the ORGANVM event catalog with producers and consumers."
+        ),
         inputSchema={"type": "object", "properties": {}},
     ),
     # Graph tools
@@ -303,9 +309,11 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
 # ── Entry point ───────────────────────────────────────────────────
 
+
 def main() -> None:
     """Run the MCP server on stdio."""
     import asyncio
+
     asyncio.run(_run())
 
 

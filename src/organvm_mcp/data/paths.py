@@ -60,9 +60,6 @@ def organ_directories() -> dict[str, Path]:
         Dict like {"ORGAN-I": Path("~/Workspace/organvm-i-theoria"), ...}
     """
     from organvm_engine.git.superproject import ORGAN_DIR_MAP
-    
+
     ws = workspace_root()
-    return {
-        key: ws / subpath 
-        for key, subpath in ORGAN_DIR_MAP.items()
-    }
+    return {key: ws / subpath for key, subpath in ORGAN_DIR_MAP.items()}

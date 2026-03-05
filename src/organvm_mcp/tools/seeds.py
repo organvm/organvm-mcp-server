@@ -20,12 +20,12 @@ def get_seed(org: str, name: str) -> dict[str, Any]:
         Full seed.yaml dict, or {"error": "seed.yaml not found"}.
     """
     from organvm_mcp.data.loader import load_all_seeds
-    
+
     seeds = load_all_seeds()
     for seed in seeds:
         if seed.get("org") == org and seed.get("repo") == name:
             return seed
-            
+
     return {"error": f"seed.yaml not found for {org}/{name}"}
 
 
@@ -49,44 +49,48 @@ def find_edges(
         ]}
     """
     from organvm_mcp.data.loader import load_all_seeds
-    
+
     seeds = load_all_seeds()
     edges = []
-    
+
     for seed in seeds:
         current_repo = f"{seed.get('org')}/{seed.get('repo')}"
         current_organ = seed.get("organ")
-        
+
         # Check if this seed matches the filter
         if repo and seed.get("repo") != repo:
             continue
         if organ and current_organ != organ:
             continue
-            
+
         # Extract produces
         if direction in ["produces", "both"]:
             for prod in seed.get("produces", []) or []:
-                edges.append({
-                    "source": current_repo,
-                    "source_organ": current_organ,
-                    "target": prod.get("target") or "unknown",
-                    "artifact": prod.get("artifact") or "unknown",
-                    "event_type": prod.get("event") or "",
-                    "direction": "produces"
-                })
-                
+                edges.append(
+                    {
+                        "source": current_repo,
+                        "source_organ": current_organ,
+                        "target": prod.get("target") or "unknown",
+                        "artifact": prod.get("artifact") or "unknown",
+                        "event_type": prod.get("event") or "",
+                        "direction": "produces",
+                    },
+                )
+
         # Extract consumes
         if direction in ["consumes", "both"]:
             for cons in seed.get("consumes", []) or []:
-                edges.append({
-                    "source": cons.get("source") or "unknown",
-                    "target": current_repo,
-                    "target_organ": current_organ,
-                    "artifact": cons.get("artifact") or "unknown",
-                    "event_type": cons.get("event") or "",
-                    "direction": "consumes"
-                })
-                
+                edges.append(
+                    {
+                        "source": cons.get("source") or "unknown",
+                        "target": current_repo,
+                        "target_organ": current_organ,
+                        "artifact": cons.get("artifact") or "unknown",
+                        "event_type": cons.get("event") or "",
+                        "direction": "consumes",
+                    },
+                )
+
     return {"edges": edges}
 
 
@@ -102,12 +106,12 @@ def get_event_contract(event_type: str) -> dict[str, Any]:
         and workflow references. Returns {"error": "..."} if not found.
     """
     from organvm_mcp.data.loader import load_event_catalog
-    
+
     events = load_event_catalog()
     for ev in events:
         if ev.get("event_type") == event_type:
             return ev
-            
+
     return {"error": f"Event type '{event_type}' not found in catalog"}
 
 
@@ -122,16 +126,18 @@ def list_events() -> dict[str, Any]:
         ]}
     """
     from organvm_mcp.data.loader import load_event_catalog
-    
+
     events = load_event_catalog()
     summary = []
     for ev in events:
-        summary.append({
-            "event_type": ev.get("event_type"),
-            "edge": ev.get("edge"),
-            "producer": ev.get("producer"),
-            "consumer": ev.get("consumer"),
-            "description": ev.get("description", "")
-        })
-        
+        summary.append(
+            {
+                "event_type": ev.get("event_type"),
+                "edge": ev.get("edge"),
+                "producer": ev.get("producer"),
+                "consumer": ev.get("consumer"),
+                "description": ev.get("description", ""),
+            },
+        )
+
     return {"events": summary}

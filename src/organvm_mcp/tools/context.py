@@ -21,26 +21,28 @@ def get_context(
     start of any session to understand the current repo's place in the
     ORGANVM system.
     """
-    from organvm_mcp.data.loader import load_registry, load_all_seeds
-    from organvm_engine.registry.query import find_repo, all_repos
     from pathlib import Path
-    
+
+    from organvm_engine.registry.query import find_repo
+
+    from organvm_mcp.data.loader import load_all_seeds, load_registry
+
     registry = load_registry()
     seeds = load_all_seeds()
-    
+
     # 1. Resolve repo name and organization
     resolved_repo = repo
     resolved_org = org
-    
+
     if cwd:
         cwd_path = Path(cwd).resolve()
         # Expecting path like .../Workspace/<organ-dir>/<repo-name>
-        if cwd_path.name != "Workspace": # Not in root
+        if cwd_path.name != "Workspace":  # Not in root
             resolved_repo = cwd_path.name
             parent = cwd_path.parent
             if parent.name != "Workspace":
                 resolved_org = parent.name
-                
+
     if not resolved_repo:
         return {"error": "Could not resolve repository name from arguments or CWD"}
 
@@ -49,18 +51,20 @@ def get_context(
     if not reg_result:
         # Check if it's a personal repo
         if resolved_org == "4444J99":
-             return {
+            return {
                 "repo": {"name": resolved_repo, "org": "4444J99", "tier": "personal"},
-                "governance": {"notes": ["Personal workspace repo — no inter-organ obligations"]}
+                "governance": {"notes": ["Personal workspace repo — no inter-organ obligations"]},
             }
         return {"error": f"Repository '{resolved_repo}' not found in ORGANVM registry"}
-        
+
     organ_key, repo_data = reg_result
-    
+
     # 3. Assemble context
     organ_data = registry.get("organs", {}).get(organ_key, {})
-    siblings = [r.get("name") for r in organ_data.get("repositories", []) if r.get("name") != resolved_repo]
-    
+    siblings = [
+        r.get("name") for r in organ_data.get("repositories", []) if r.get("name") != resolved_repo
+    ]
+
     produces = []
     consumes = []
     # Find matching seed edges
@@ -68,30 +72,27 @@ def get_context(
         if seed.get("repo") == resolved_repo:
             produces = seed.get("produces", []) or []
             consumes = seed.get("consumes", []) or []
-            
+
     # Default governance notes based on organ position
     LEVELS = {"ORGAN-I": 1, "ORGAN-II": 2, "ORGAN-III": 3}
     lv = LEVELS.get(organ_key, 0)
     upstream = [k for k, v in LEVELS.items() if v < lv]
     downstream = [k for k, v in LEVELS.items() if v > lv]
-    
+
     return {
         "repo": {**repo_data, "organ": organ_key},
         "organ": {
             "key": organ_key,
             "name": organ_data.get("name"),
-            "org": organ_data.get("organization")
+            "org": organ_data.get("organization"),
         },
-        "edges": {
-            "produces": produces,
-            "consumes": consumes
-        },
-        "siblings": siblings[:10], # Limit sibling list
+        "edges": {"produces": produces, "consumes": consumes},
+        "siblings": siblings[:10],  # Limit sibling list
         "governance": {
             "upstream_organs": upstream,
             "downstream_organs": downstream,
-            "notes": ["Unidirectional flow: I→II→III only."]
-        }
+            "notes": ["Unidirectional flow: I→II→III only."],
+        },
     }
 
 
@@ -112,40 +113,40 @@ def get_context_markdown(
     ctx = get_context(repo, org, cwd)
     if "error" in ctx:
         return f"**Error:** {ctx['error']}"
-        
+
     repo_data = ctx["repo"]
     organ_data = ctx["organ"]
     edges = ctx.get("edges", {})
     governance = ctx.get("governance", {})
-    
+
     lines = [
         f"## System Context: {repo_data.get('name')}",
         "",
         f"**Organ:** {organ_data.get('key')} ({organ_data.get('name')})",
         f"**Tier:** {repo_data.get('tier')} | **Status:** {repo_data.get('promotion_status')}",
-        ""
+        "",
     ]
-    
+
     if edges.get("produces"):
         lines.append("### Produces")
         for p in edges["produces"]:
             lines.append(f"- → `{p.get('target')}`: {p.get('artifact')}")
         lines.append("")
-        
+
     if edges.get("consumes"):
         lines.append("### Consumes")
         for c in edges["consumes"]:
             lines.append(f"- ← `{c.get('source')}`: {c.get('artifact')}")
         lines.append("")
-        
+
     if ctx.get("siblings"):
         lines.append(f"### Siblings in {organ_data.get('name')}")
         lines.append(", ".join(f"`{s}`" for s in ctx["siblings"]))
         lines.append("")
-        
+
     if governance.get("notes"):
         lines.append("### Governance Notes")
         for n in governance["notes"]:
             lines.append(f"- {n}")
-            
+
     return "\n".join(lines)

@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -65,7 +64,7 @@ def load_event_catalog() -> list[dict]:
     if _event_catalog_cache is None:
         path = event_catalog_path()
         if path.exists():
-            with open(path) as f:
+            with path.open() as f:
                 data = yaml.safe_load(f)
             _event_catalog_cache = data.get("events", []) if isinstance(data, dict) else []
         else:
@@ -82,10 +81,7 @@ def load_governance_rules() -> dict:
     global _governance_rules_cache
     if _governance_rules_cache is None:
         path = governance_rules_path()
-        if path.exists():
-            _governance_rules_cache = _read_json(path)
-        else:
-            _governance_rules_cache = {}
+        _governance_rules_cache = _read_json(path) if path.exists() else {}
     return _governance_rules_cache
 
 
@@ -100,7 +96,7 @@ def reload() -> None:
 
 def _read_json(path: Path) -> dict:
     """Read and parse a JSON file."""
-    with open(path) as f:
+    with path.open() as f:
         return json.load(f)
 
 
@@ -111,7 +107,7 @@ def _discover_seeds(workspace: Path) -> list[dict]:
     """
     from organvm_engine.seed.discover import discover_seeds
     from organvm_engine.seed.reader import read_seed
-    
+
     seed_paths = discover_seeds(workspace)
     results = []
     for path in seed_paths:

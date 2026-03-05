@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-import pytest
-from unittest.mock import patch, MagicMock
+from datetime import date
+from unittest.mock import patch
 
-from organvm_mcp.tools import registry, seeds, graph, health, context
+import pytest
+
+from organvm_mcp.tools import context, graph, health, registry, seeds
 
 
 @pytest.fixture
@@ -30,7 +32,7 @@ def mock_registry_data():
                         "implementation_status": "ACTIVE",
                         "dependencies": ["repo-a"],
                     },
-                ]
+                ],
             },
             "ORGAN-II": {
                 "name": "Art",
@@ -43,9 +45,9 @@ def mock_registry_data():
                         "implementation_status": "ACTIVE",
                         "dependencies": ["organvm-i-theoria/repo-a"],
                     },
-                ]
+                ],
             },
-        }
+        },
     }
 
 
@@ -119,7 +121,12 @@ class TestSeedTools:
     @patch("organvm_mcp.data.loader.load_all_seeds")
     def test_find_edges(self, mock_load):
         mock_load.return_value = [
-            {"org": "org", "repo": "repo-a", "organ": "ORGAN-I", "produces": [{"target": "repo-b", "artifact": "data"}]}
+            {
+                "org": "org",
+                "repo": "repo-a",
+                "organ": "ORGAN-I",
+                "produces": [{"target": "repo-b", "artifact": "data"}],
+            },
         ]
         res = seeds.find_edges(repo="repo-a")
         assert len(res["edges"]) == 1
@@ -128,7 +135,7 @@ class TestSeedTools:
     @patch("organvm_mcp.data.loader.load_all_seeds")
     def test_find_edges_no_match(self, mock_load):
         mock_load.return_value = [
-            {"org": "org", "repo": "repo-a", "organ": "ORGAN-I", "produces": []}
+            {"org": "org", "repo": "repo-a", "organ": "ORGAN-I", "produces": []},
         ]
         res = seeds.find_edges(repo="nonexistent")
         assert len(res["edges"]) == 0
@@ -141,6 +148,37 @@ class TestGraphTools:
         res = graph.trace_dependencies(repo="repo-b", direction="upstream")
         assert len(res["upstream"]) == 1
         assert res["upstream"][0]["repo"] == "repo-a"
+        assert res["upstream"][0]["organ"] == "ORGAN-I"
+
+    @patch("organvm_mcp.data.loader.load_registry")
+    def test_trace_dependencies_normalizes_canonical_dependency_names(
+        self, mock_load, mock_registry_data,
+    ):
+        mock_load.return_value = mock_registry_data
+        res = graph.trace_dependencies(repo="repo-c", direction="upstream")
+        assert len(res["upstream"]) == 1
+        assert res["upstream"][0]["repo"] == "repo-a"
+        assert res["upstream"][0]["organ"] == "ORGAN-I"
+
+    @patch("organvm_mcp.data.loader.load_registry")
+    def test_trace_dependencies_downstream_with_canonical_repo_arg(
+        self, mock_load, mock_registry_data,
+    ):
+        mock_load.return_value = mock_registry_data
+        res = graph.trace_dependencies(
+            repo="organvm-i-theoria/repo-a",
+            direction="downstream",
+            depth=2,
+        )
+        downstream = {entry["repo"] for entry in res["downstream"]}
+        assert "repo-b" in downstream
+        assert "repo-c" in downstream
+
+    @patch("organvm_mcp.data.loader.load_registry")
+    def test_trace_dependencies_unknown_repo(self, mock_load, mock_registry_data):
+        mock_load.return_value = mock_registry_data
+        res = graph.trace_dependencies(repo="does-not-exist")
+        assert "error" in res
 
     @patch("organvm_mcp.data.loader.load_governance_rules")
     def test_check_dependency_allowed(self, mock_load):
@@ -164,19 +202,31 @@ class TestHealthTools:
         res = health.system_health()
         assert res["total_repos"] == 3
         assert res["active_repos"] == 3
+        assert "ci_coverage" in res
+        assert "test_coverage" in res
+        assert "docs_coverage" in res
+        assert "seed_coverage" in res
+        assert "by_organ" in res
         assert "promotion_distribution" in res
         assert "timestamp" in res
 
     @patch("organvm_engine.omega.scorecard.evaluate")
     @patch("organvm_mcp.data.loader.load_registry")
     def test_omega_status_returns_structure(self, mock_reg, mock_eval, mock_registry_data):
-        from organvm_engine.omega.scorecard import OmegaScorecard, OmegaCriterion, SoakStreak
+        from organvm_engine.omega.scorecard import OmegaCriterion, OmegaScorecard, SoakStreak
+
         mock_reg.return_value = mock_registry_data
         mock_eval.return_value = OmegaScorecard(
             criteria=[
-                OmegaCriterion(id=i, name=f"C{i}", horizon="H1",
-                               measurement="test", auto=False,
-                               status="MET" if i == 6 else "NOT_MET", value="x")
+                OmegaCriterion(
+                    id=i,
+                    name=f"C{i}",
+                    horizon="H1",
+                    measurement="test",
+                    auto=False,
+                    status="MET" if i == 6 else "NOT_MET",
+                    value="x",
+                )
                 for i in range(1, 18)
             ],
             soak=SoakStreak(total_snapshots=8, streak_days=8),
@@ -191,10 +241,10 @@ class TestHealthTools:
         assert "soak" in res
         assert "generated" in res
 
-
     @patch("organvm_engine.ci.triage.triage")
     def test_ci_health(self, mock_triage):
         from organvm_engine.ci.triage import CITriageReport
+
         mock_triage.return_value = CITriageReport(
             date="2026-02-23",
             total_checked=77,
@@ -211,11 +261,10 @@ class TestHealthTools:
     @patch("organvm_engine.deadlines.parser.filter_upcoming")
     @patch("organvm_engine.deadlines.parser.parse_deadlines")
     def test_deadlines(self, mock_parse, mock_filter):
-        from datetime import date
         from organvm_engine.deadlines.parser import Deadline
+
         mock_deadlines = [
-            Deadline(item_id="F4", description="Submit NEH",
-                     deadline_date=date(2026, 3, 6)),
+            Deadline(item_id="F4", description="Submit NEH", deadline_date=date(2026, 3, 6)),
         ]
         mock_parse.return_value = mock_deadlines
         mock_filter.return_value = mock_deadlines
@@ -247,7 +296,11 @@ class TestContextTools:
     def test_get_context_with_seeds(self, mock_seeds, mock_reg, mock_registry_data):
         mock_reg.return_value = mock_registry_data
         mock_seeds.return_value = [
-            {"repo": "repo-a", "produces": [{"target": "repo-b", "artifact": "schemas"}], "consumes": []}
+            {
+                "repo": "repo-a",
+                "produces": [{"target": "repo-b", "artifact": "schemas"}],
+                "consumes": [],
+            },
         ]
         res = context.get_context(repo="repo-a")
         assert len(res["edges"]["produces"]) == 1
