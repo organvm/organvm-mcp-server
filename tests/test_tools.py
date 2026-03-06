@@ -140,6 +140,62 @@ class TestSeedTools:
         res = seeds.find_edges(repo="nonexistent")
         assert len(res["edges"]) == 0
 
+    @patch("organvm_mcp.data.loader.load_all_seeds")
+    def test_get_seed_found(self, mock_load):
+        mock_load.return_value = [
+            {"org": "org-a", "repo": "repo-a", "organ": "ORGAN-I", "tier": "flagship"},
+        ]
+        res = seeds.get_seed(org="org-a", name="repo-a")
+        assert res["tier"] == "flagship"
+
+    @patch("organvm_mcp.data.loader.load_all_seeds")
+    def test_get_seed_not_found(self, mock_load):
+        mock_load.return_value = [
+            {"org": "org-a", "repo": "repo-a", "organ": "ORGAN-I"},
+        ]
+        res = seeds.get_seed(org="org-a", name="nonexistent")
+        assert "error" in res
+
+    @patch("organvm_mcp.data.loader.load_event_catalog")
+    def test_get_event_contract_found(self, mock_load):
+        mock_load.return_value = [
+            {"event_type": "essay.published", "edge": "V->VI", "producer": "ORGAN-V"},
+        ]
+        res = seeds.get_event_contract("essay.published")
+        assert res["event_type"] == "essay.published"
+
+    @patch("organvm_mcp.data.loader.load_event_catalog")
+    def test_get_event_contract_not_found(self, mock_load):
+        mock_load.return_value = [
+            {"event_type": "essay.published"},
+        ]
+        res = seeds.get_event_contract("nonexistent.event")
+        assert "error" in res
+
+    @patch("organvm_mcp.data.loader.load_event_catalog")
+    def test_list_events(self, mock_load):
+        mock_load.return_value = [
+            {"event_type": "essay.published", "edge": "V->VI", "producer": "ORGAN-V", "consumer": "ORGAN-VI"},
+            {"event_type": "theory.candidate", "edge": "I->IV", "producer": "ORGAN-I", "consumer": "ORGAN-IV"},
+        ]
+        res = seeds.list_events()
+        assert len(res["events"]) == 2
+
+    @patch("organvm_mcp.data.loader.load_all_seeds")
+    def test_find_edges_produces_only(self, mock_load):
+        mock_load.return_value = [
+            {
+                "org": "org",
+                "repo": "repo-a",
+                "organ": "ORGAN-I",
+                "produces": [{"target": "repo-b", "artifact": "data"}],
+                "consumes": [{"source": "repo-c", "artifact": "schemas"}],
+            },
+        ]
+        res = seeds.find_edges(repo="repo-a", direction="produces")
+        assert len(res["edges"]) == 1
+        assert res["edges"][0]["direction"] == "produces"
+
 
 class TestGraphTools:
     @patch("organvm_mcp.data.loader.load_registry")
@@ -191,6 +247,47 @@ class TestGraphTools:
         mock_load.return_value = {"allowed_edges": [], "forbidden_edges": []}
         res = graph.check_dependency(source_organ="ORGAN-I", target_organ="ORGAN-III")
         assert res["allowed"] is False
+
+    @patch("organvm_mcp.data.loader.load_all_seeds")
+    @patch("organvm_mcp.data.loader.load_registry")
+    def test_get_dependency_graph_full(self, mock_reg, mock_seeds, mock_registry_data):
+        mock_reg.return_value = mock_registry_data
+        mock_seeds.return_value = []
+        res = graph.get_dependency_graph()
+        assert "nodes" in res
+        assert "edges" in res
+        assert len(res["nodes"]) == 3
+
+    @patch("organvm_mcp.data.loader.load_all_seeds")
+    @patch("organvm_mcp.data.loader.load_registry")
+    def test_get_dependency_graph_filtered(self, mock_reg, mock_seeds, mock_registry_data):
+        mock_reg.return_value = mock_registry_data
+        mock_seeds.return_value = []
+        res = graph.get_dependency_graph(organ="ORGAN-I")
+        assert all(n["organ"] == "ORGAN-I" for n in res["nodes"])
+        assert len(res["nodes"]) == 2
+
+    @patch("organvm_mcp.data.loader.load_governance_rules")
+    def test_check_dependency_no_rules(self, mock_load):
+        mock_load.return_value = {}
+        res = graph.check_dependency(source_organ="ORGAN-I", target_organ="ORGAN-II")
+        assert res["allowed"] is True
+
+    @patch("organvm_mcp.data.loader.load_governance_rules")
+    def test_check_dependency_forbidden_edge(self, mock_load):
+        mock_load.return_value = {
+            "allowed_edges": [],
+            "forbidden_edges": ["ORGAN-I->ORGAN-VII"],
+        }
+        res = graph.check_dependency(source_organ="ORGAN-I", target_organ="ORGAN-VII")
+        assert res["allowed"] is False
+        assert "forbidden" in res["reason"]
+
+    def test_normalize_repo_name_with_slash(self):
+        assert graph._normalize_repo_name("org/repo") == "repo"
+
+    def test_normalize_repo_name_empty(self):
+        assert graph._normalize_repo_name("") == ""
 
 
 class TestHealthTools:
@@ -271,6 +368,77 @@ class TestHealthTools:
         res = health.deadlines(days=30)
         assert res["total_shown"] == 1
         assert res["deadlines"][0]["item_id"] == "F4"
+
+
+    @patch("organvm_mcp.data.loader.load_all_seeds")
+    @patch("organvm_mcp.data.loader.load_registry")
+    def test_organism_full_view(self, mock_reg, mock_seeds, mock_registry_data):
+        mock_reg.return_value = mock_registry_data
+        mock_seeds.return_value = []
+        res = health.organism()
+        assert "total_repos" in res
+        assert "organs" in res
+        assert "sys_pct" in res
+        assert res["total_repos"] == 3
+
+    @patch("organvm_mcp.data.loader.load_registry")
+    def test_organism_gates_view(self, mock_reg, mock_registry_data):
+        mock_reg.return_value = mock_registry_data
+        res = health.organism(view="gates")
+        assert "gates" in res
+        assert isinstance(res["gates"], list)
+        assert len(res["gates"]) > 0
+        # Each gate entry should have standard fields
+        gate = res["gates"][0]
+        assert "name" in gate
+        assert "applicable" in gate
+        assert "passed" in gate
+
+    @patch("organvm_mcp.data.loader.load_registry")
+    def test_organism_blockers_view(self, mock_reg, mock_registry_data):
+        mock_reg.return_value = mock_registry_data
+        res = health.organism(view="blockers")
+        assert "ready" in res
+        assert "blocked" in res
+        assert isinstance(res["ready"], list)
+        assert isinstance(res["blocked"], list)
+
+    @patch("organvm_mcp.data.loader.load_registry")
+    def test_organism_organ_zoom(self, mock_reg, mock_registry_data):
+        mock_reg.return_value = mock_registry_data
+        res = health.organism(organ="ORGAN-I")
+        assert res["organ_id"] == "ORGAN-I"
+        assert res["count"] == 2
+        assert "repos" in res
+
+    @patch("organvm_mcp.data.loader.load_registry")
+    def test_organism_repo_zoom(self, mock_reg, mock_registry_data):
+        mock_reg.return_value = mock_registry_data
+        res = health.organism(repo="repo-a")
+        assert res["repo"] == "repo-a"
+        assert res["organ"] == "ORGAN-I"
+        assert "gates" in res
+        assert "pct" in res
+
+    @patch("organvm_mcp.data.loader.load_all_seeds")
+    @patch("organvm_mcp.data.loader.load_registry")
+    def test_system_health_has_organism_fields(self, mock_reg, mock_seeds, mock_registry_data):
+        mock_reg.return_value = mock_registry_data
+        mock_seeds.return_value = [{"repo": "repo-a"}, {"repo": "repo-b"}]
+        res = health.system_health()
+        # Organism-derived fields
+        assert "ci_coverage" in res
+        assert "promotion_distribution" in res
+        assert "by_organ" in res
+        assert isinstance(res["ci_coverage"], float)
+        assert isinstance(res["promotion_distribution"], dict)
+        assert isinstance(res["by_organ"], dict)
+        # Supplemental fields not from organism
+        assert "seed_coverage" in res
+        assert "revenue_status" in res
+        assert "timestamp" in res
+        # Verify 'generated' was renamed to 'timestamp'
+        assert "generated" not in res
 
 
 class TestContextTools:

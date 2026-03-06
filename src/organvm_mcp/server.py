@@ -238,6 +238,34 @@ TOOLS = [
         ),
         inputSchema={"type": "object", "properties": {}},
     ),
+    # Organism tools
+    Tool(
+        name="organvm_organism",
+        description=(
+            "Get the unified system organism — hierarchical snapshot of all repos, "
+            "organs, gates, and promotion status. Optionally zoom to a specific "
+            "organ or repo. Returns gate pass rates, promo readiness, and blockers."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organ": {
+                    "type": "string",
+                    "description": "Zoom to specific organ (e.g. ORGAN-I, META-ORGANVM)",
+                },
+                "repo": {
+                    "type": "string",
+                    "description": "Zoom to specific repo name",
+                },
+                "view": {
+                    "type": "string",
+                    "enum": ["full", "gates", "blockers"],
+                    "description": "View projection (default: full)",
+                    "default": "full",
+                },
+            },
+        },
+    ),
     # Context tools
     Tool(
         name="organvm_get_context",
@@ -274,6 +302,7 @@ _DISPATCH = {
     "organvm_trace_dependencies": lambda args: graph.trace_dependencies(**args),
     "organvm_check_dependency": lambda args: graph.check_dependency(**args),
     "organvm_get_dependency_graph": lambda args: graph.get_dependency_graph(**args),
+    "organvm_organism": lambda args: health.organism(**args),
     "organvm_system_health": lambda args: health.system_health(),
     "organvm_omega_status": lambda args: health.omega_status(),
     "organvm_ci_health": lambda args: health.ci_health(),
