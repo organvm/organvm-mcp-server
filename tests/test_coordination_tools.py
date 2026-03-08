@@ -161,3 +161,57 @@ class TestProveSweepMCP:
         res = coordination.coordination_prove_sweep()
         assert res["total"] == 2
         assert "pytest engine/ -v" in res["obligations"]
+
+
+class TestToolCheckoutMCP:
+    def test_light_clears(self):
+        res = coordination.coordination_tool_checkout(
+            handle="claude-forge",
+            command_hint="git status",
+        )
+        assert res["cleared"] is True
+
+    def test_heavy_clears_when_empty(self):
+        res = coordination.coordination_tool_checkout(
+            handle="claude-forge",
+            command_hint="pytest tests/ -v",
+        )
+        assert res["cleared"] is True
+        assert res["checkout_id"] != ""
+
+    def test_heavy_blocks_second(self):
+        coordination.coordination_tool_checkout(
+            handle="claude-forge",
+            command_hint="pytest engine/ -v",
+        )
+        res = coordination.coordination_tool_checkout(
+            handle="gemini-scout",
+            command_hint="pytest mcp/ -v",
+        )
+        assert res["cleared"] is False
+        assert res["wait"] is True
+
+
+class TestToolCheckinMCP:
+    def test_checkin_releases(self):
+        co = coordination.coordination_tool_checkout(
+            handle="claude-forge",
+            command_hint="pytest tests/ -v",
+        )
+        res = coordination.coordination_tool_checkin(co["checkout_id"])
+        assert res["released"] is True
+
+
+class TestToolQueueMCP:
+    def test_empty_queue(self):
+        res = coordination.coordination_tool_queue()
+        assert res["active_checkouts"] == 0
+
+    def test_queue_shows_active(self):
+        coordination.coordination_tool_checkout(
+            handle="claude-forge",
+            command_hint="pytest tests/ -v",
+        )
+        res = coordination.coordination_tool_queue()
+        assert res["active_checkouts"] == 1
+        assert res["heavy_lane"]["occupied"] == 1

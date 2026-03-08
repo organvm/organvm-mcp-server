@@ -87,3 +87,32 @@ def coordination_prove_sweep() -> dict[str, Any]:
     from organvm_engine.coordination.claims import prove_sweep
 
     return prove_sweep()
+
+
+def coordination_tool_checkout(
+    handle: str = "",
+    tool: str = "bash",
+    command_hint: str = "",
+    weight: str | None = None,
+) -> dict[str, Any]:
+    """Check out a tool before running a command. Returns clear/wait."""
+    from organvm_engine.coordination.tool_lock import tool_checkout
+
+    return tool_checkout(
+        handle=handle, tool=tool,
+        command_hint=command_hint, weight=weight,
+    )
+
+
+def coordination_tool_checkin(checkout_id: str = "") -> dict[str, Any]:
+    """Check in a tool after a command completes."""
+    from organvm_engine.coordination.tool_lock import tool_checkin
+
+    return tool_checkin(checkout_id)
+
+
+def coordination_tool_queue() -> dict[str, Any]:
+    """View the tool checkout queue — who's running what right now."""
+    from organvm_engine.coordination.tool_lock import tool_queue
+
+    return tool_queue()

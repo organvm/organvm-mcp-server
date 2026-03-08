@@ -9,7 +9,7 @@ from organvm_mcp.server import TOOLS, _DISPATCH, call_tool
 
 class TestServerRegistration:
     def test_tools_count(self):
-        assert len(TOOLS) == 56
+        assert len(TOOLS) == 59
 
     def test_dispatch_covers_all_tools(self):
         tool_names = {t.name for t in TOOLS}

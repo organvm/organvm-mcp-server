@@ -858,6 +858,64 @@ TOOLS = [
         ),
         inputSchema={"type": "object", "properties": {}},
     ),
+    # Tool checkout line
+    Tool(
+        name="organvm_tool_checkout",
+        description=(
+            "Check out a tool before running a command. If another agent "
+            "is already running a heavy command, returns wait advisory. "
+            "Call before Bash to avoid traffic jams on shared hardware."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "handle": {
+                    "type": "string",
+                    "description": "Agent handle from punch_in",
+                },
+                "tool": {
+                    "type": "string",
+                    "description": "Tool name (default: bash)",
+                    "default": "bash",
+                },
+                "command_hint": {
+                    "type": "string",
+                    "description": "Command about to run (auto-classifies weight)",
+                },
+                "weight": {
+                    "type": "string",
+                    "enum": ["light", "medium", "heavy"],
+                    "description": "Override auto weight classification",
+                },
+            },
+            "required": ["handle", "command_hint"],
+        },
+    ),
+    Tool(
+        name="organvm_tool_checkin",
+        description=(
+            "Check in a tool after a command completes. "
+            "Releases the lane for other agents."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "checkout_id": {
+                    "type": "string",
+                    "description": "The checkout_id from tool_checkout",
+                },
+            },
+            "required": ["checkout_id"],
+        },
+    ),
+    Tool(
+        name="organvm_tool_queue",
+        description=(
+            "View the tool checkout queue — who's running what right now. "
+            "Shows heavy and medium lane occupancy."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
 ]
 
 
@@ -938,6 +996,9 @@ _DISPATCH = {
     "organvm_check_conflicts": lambda args: coordination.coordination_check_conflicts(**args),
     "organvm_capacity": lambda args: coordination.coordination_capacity(),
     "organvm_prove_sweep": lambda args: coordination.coordination_prove_sweep(),
+    "organvm_tool_checkout": lambda args: coordination.coordination_tool_checkout(**args),
+    "organvm_tool_checkin": lambda args: coordination.coordination_tool_checkin(**args),
+    "organvm_tool_queue": lambda args: coordination.coordination_tool_queue(),
 }
 
 
