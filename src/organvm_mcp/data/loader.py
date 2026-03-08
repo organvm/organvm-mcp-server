@@ -17,9 +17,11 @@ from pathlib import Path
 import yaml
 
 from organvm_mcp.data.paths import (
+    atoms_data_dir,
     event_catalog_path,
     governance_rules_path,
     registry_path,
+    system_metrics_path,
     workspace_root,
 )
 
@@ -28,6 +30,8 @@ _registry_cache: dict | None = None
 _seeds_cache: list[dict] | None = None
 _event_catalog_cache: list[dict] | None = None
 _governance_rules_cache: dict | None = None
+_system_metrics_cache: dict | None = None
+_pipeline_manifest_cache: dict | None = None
 
 
 def load_registry() -> dict:
@@ -85,13 +89,42 @@ def load_governance_rules() -> dict:
     return _governance_rules_cache
 
 
+def load_system_metrics() -> dict:
+    """Load and cache system-metrics.json.
+
+    Returns:
+        System metrics dict with computed and manual sections.
+    """
+    global _system_metrics_cache
+    if _system_metrics_cache is None:
+        path = system_metrics_path()
+        _system_metrics_cache = _read_json(path) if path.exists() else {}
+    return _system_metrics_cache
+
+
+def load_pipeline_manifest() -> dict:
+    """Load and cache atoms pipeline manifest.
+
+    Returns:
+        Pipeline manifest dict with file hashes and counts.
+    """
+    global _pipeline_manifest_cache
+    if _pipeline_manifest_cache is None:
+        path = atoms_data_dir() / "pipeline-manifest.json"
+        _pipeline_manifest_cache = _read_json(path) if path.exists() else {}
+    return _pipeline_manifest_cache
+
+
 def reload() -> None:
     """Clear all caches, forcing fresh reads on next access."""
-    global _registry_cache, _seeds_cache, _event_catalog_cache, _governance_rules_cache
+    global _registry_cache, _seeds_cache, _event_catalog_cache  # noqa: PLW0603
+    global _governance_rules_cache, _system_metrics_cache, _pipeline_manifest_cache  # noqa: PLW0603
     _registry_cache = None
     _seeds_cache = None
     _event_catalog_cache = None
     _governance_rules_cache = None
+    _system_metrics_cache = None
+    _pipeline_manifest_cache = None
 
 
 def _read_json(path: Path) -> dict:

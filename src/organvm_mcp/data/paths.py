@@ -53,6 +53,16 @@ def engine_dir() -> Path:
     return workspace_root() / _DEFAULT_ENGINE_SUBPATH
 
 
+def system_metrics_path() -> Path:
+    """Return the path to system-metrics.json."""
+    return corpus_dir() / "system-metrics.json"
+
+
+def atoms_data_dir() -> Path:
+    """Return the path to the atoms pipeline data directory."""
+    return corpus_dir() / "data" / "atoms"
+
+
 def organ_directories() -> dict[str, Path]:
     """Return mapping of organ keys to their workspace directories.
 
