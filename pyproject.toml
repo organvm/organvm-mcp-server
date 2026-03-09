@@ -11,6 +11,7 @@ dependencies = [
     "mcp>=1.0",
     "organvm-engine",
     "pyyaml>=6.0",
+    "jsonschema>=4.20",
 ]
 
 [project.optional-dependencies]
