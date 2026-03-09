@@ -20,6 +20,7 @@ from organvm_mcp.tools import (
     context,
     coordination,
     distill,
+    ecosystem,
     governance,
     graph,
     health,
@@ -916,6 +917,140 @@ TOOLS = [
         ),
         inputSchema={"type": "object", "properties": {}},
     ),
+    # ── Ecosystem tools ────────────────────────────────────────────────
+    Tool(
+        name="organvm_ecosystem_profile",
+        description=(
+            "Get full business ecosystem profile for a product — "
+            "delivery, revenue, marketing, community, content arms with status. "
+            "Shows coverage stats and gap analysis."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string",
+                    "description": "Repository name",
+                },
+            },
+            "required": ["repo"],
+        },
+    ),
+    Tool(
+        name="organvm_ecosystem_matrix",
+        description=(
+            "Cross-product comparison of one pillar (e.g. 'revenue', 'delivery'). "
+            "Shows all products' arms for that pillar side by side."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "pillar": {
+                    "type": "string",
+                    "description": "Pillar name (delivery, revenue, marketing, community, etc.)",
+                },
+                "organ": {
+                    "type": "string",
+                    "description": "Optional organ filter (CLI key like III, META)",
+                },
+            },
+            "required": ["pillar"],
+        },
+    ),
+    Tool(
+        name="organvm_ecosystem_gaps",
+        description=(
+            "Find missing pillars/arms across product ecosystems. "
+            "Compares against suggested defaults and flags suggestions."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string",
+                    "description": "Optional: analyze one repo only",
+                },
+                "organ": {
+                    "type": "string",
+                    "description": "Optional organ filter",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_ecosystem_actions",
+        description=(
+            "Prioritized next-action list from all ecosystem profiles. "
+            "Aggregates next_action fields, sorted by priority."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organ": {
+                    "type": "string",
+                    "description": "Optional organ filter",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_pillar_dna",
+        description=(
+            "Get pillar DNA lifecycle contracts for a product — "
+            "research scope, artifacts, gen/crit prompts, lifecycle gates. "
+            "Shows one or all pillars for a repo."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string",
+                    "description": "Repository name",
+                },
+                "pillar": {
+                    "type": "string",
+                    "description": "Optional: show only one pillar's DNA",
+                },
+            },
+            "required": ["repo"],
+        },
+    ),
+    Tool(
+        name="organvm_ecosystem_staleness",
+        description=(
+            "Staleness report for pillar DNA artifacts. "
+            "Checks all artifact freshness against staleness thresholds."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string",
+                    "description": "Optional: check one repo only",
+                },
+                "organ": {
+                    "type": "string",
+                    "description": "Optional organ filter",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_ecosystem_lifecycle",
+        description=(
+            "Lifecycle stages across repos — shows which stage each pillar "
+            "is in (conception, research, planning, building, live, etc.)."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organ": {
+                    "type": "string",
+                    "description": "Optional organ filter",
+                },
+            },
+        },
+    ),
 ]
 
 
@@ -999,6 +1134,14 @@ _DISPATCH = {
     "organvm_tool_checkout": lambda args: coordination.coordination_tool_checkout(**args),
     "organvm_tool_checkin": lambda args: coordination.coordination_tool_checkin(**args),
     "organvm_tool_queue": lambda args: coordination.coordination_tool_queue(),
+    # Ecosystem
+    "organvm_ecosystem_profile": lambda args: ecosystem.ecosystem_profile(**args),
+    "organvm_ecosystem_matrix": lambda args: ecosystem.ecosystem_matrix(**args),
+    "organvm_ecosystem_gaps": lambda args: ecosystem.ecosystem_gaps(**args),
+    "organvm_ecosystem_actions": lambda args: ecosystem.ecosystem_actions(**args),
+    "organvm_pillar_dna": lambda args: ecosystem.pillar_dna(**args),
+    "organvm_ecosystem_staleness": lambda args: ecosystem.ecosystem_staleness(**args),
+    "organvm_ecosystem_lifecycle": lambda args: ecosystem.ecosystem_lifecycle(**args),
 }
 
 
