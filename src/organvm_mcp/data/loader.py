@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 
 import yaml
+from organvm_engine.paths import PathConfig, resolve_path_config
 
 from organvm_mcp.data.paths import (
     atoms_data_dir,
@@ -25,106 +26,122 @@ from organvm_mcp.data.paths import (
     workspace_root,
 )
 
-# Module-level caches
-_registry_cache: dict | None = None
-_seeds_cache: list[dict] | None = None
-_event_catalog_cache: list[dict] | None = None
-_governance_rules_cache: dict | None = None
-_system_metrics_cache: dict | None = None
-_pipeline_manifest_cache: dict | None = None
+# Module-level caches keyed by workspace/corpus pair
+_registry_cache: dict[tuple[str, str], dict] = {}
+_seeds_cache: dict[tuple[str, str], list[dict]] = {}
+_event_catalog_cache: dict[tuple[str, str], list[dict]] = {}
+_governance_rules_cache: dict[tuple[str, str], dict] = {}
+_system_metrics_cache: dict[tuple[str, str], dict] = {}
+_pipeline_manifest_cache: dict[tuple[str, str], dict] = {}
 
 
-def load_registry() -> dict:
+def _cache_key(config: PathConfig | None = None) -> tuple[str, str]:
+    cfg = resolve_path_config(config)
+    return (
+        str(cfg.workspace_root().resolve()),
+        str(cfg.corpus_dir().resolve()),
+    )
+
+
+def load_registry(config: PathConfig | None = None) -> dict:
     """Load and cache registry-v2.json.
 
     Returns:
         Full registry dict with organ keys as top-level keys.
     """
-    global _registry_cache
-    if _registry_cache is None:
-        _registry_cache = _read_json(registry_path())
-    return _registry_cache
+    key = _cache_key(config)
+    if key not in _registry_cache:
+        _registry_cache[key] = _read_json(registry_path(config))
+    return _registry_cache[key]
 
 
-def load_all_seeds() -> list[dict]:
+def load_all_seeds(config: PathConfig | None = None) -> list[dict]:
     """Discover and load all seed.yaml files in the workspace.
 
     Returns:
         List of parsed seed.yaml dicts, one per repo.
     """
-    global _seeds_cache
-    if _seeds_cache is None:
-        _seeds_cache = _discover_seeds(workspace_root())
-    return _seeds_cache
+    key = _cache_key(config)
+    if key not in _seeds_cache:
+        _seeds_cache[key] = _discover_seeds(workspace_root(config))
+    return _seeds_cache[key]
 
 
-def load_event_catalog() -> list[dict]:
+def load_event_catalog(config: PathConfig | None = None) -> list[dict]:
     """Load and cache event-catalog.yaml.
 
     Returns:
         List of event definitions.
     """
-    global _event_catalog_cache
-    if _event_catalog_cache is None:
-        path = event_catalog_path()
+    key = _cache_key(config)
+    if key not in _event_catalog_cache:
+        path = event_catalog_path(config)
         if path.exists():
             with path.open() as f:
                 data = yaml.safe_load(f)
-            _event_catalog_cache = data.get("events", []) if isinstance(data, dict) else []
+            _event_catalog_cache[key] = data.get("events", []) if isinstance(data, dict) else []
         else:
-            _event_catalog_cache = []
-    return _event_catalog_cache
+            _event_catalog_cache[key] = []
+    return _event_catalog_cache[key]
 
 
-def load_governance_rules() -> dict:
+def load_governance_rules(config: PathConfig | None = None) -> dict:
     """Load and cache governance-rules.json.
 
     Returns:
         Governance rules dict with allowed_edges, forbidden_edges, etc.
     """
-    global _governance_rules_cache
-    if _governance_rules_cache is None:
-        path = governance_rules_path()
-        _governance_rules_cache = _read_json(path) if path.exists() else {}
-    return _governance_rules_cache
+    key = _cache_key(config)
+    if key not in _governance_rules_cache:
+        path = governance_rules_path(config)
+        _governance_rules_cache[key] = _read_json(path) if path.exists() else {}
+    return _governance_rules_cache[key]
 
 
-def load_system_metrics() -> dict:
+def load_system_metrics(config: PathConfig | None = None) -> dict:
     """Load and cache system-metrics.json.
 
     Returns:
         System metrics dict with computed and manual sections.
     """
-    global _system_metrics_cache
-    if _system_metrics_cache is None:
-        path = system_metrics_path()
-        _system_metrics_cache = _read_json(path) if path.exists() else {}
-    return _system_metrics_cache
+    key = _cache_key(config)
+    if key not in _system_metrics_cache:
+        path = system_metrics_path(config)
+        _system_metrics_cache[key] = _read_json(path) if path.exists() else {}
+    return _system_metrics_cache[key]
 
 
-def load_pipeline_manifest() -> dict:
+def load_pipeline_manifest(config: PathConfig | None = None) -> dict:
     """Load and cache atoms pipeline manifest.
 
     Returns:
         Pipeline manifest dict with file hashes and counts.
     """
-    global _pipeline_manifest_cache
-    if _pipeline_manifest_cache is None:
-        path = atoms_data_dir() / "pipeline-manifest.json"
-        _pipeline_manifest_cache = _read_json(path) if path.exists() else {}
-    return _pipeline_manifest_cache
+    key = _cache_key(config)
+    if key not in _pipeline_manifest_cache:
+        path = atoms_data_dir(config) / "pipeline-manifest.json"
+        _pipeline_manifest_cache[key] = _read_json(path) if path.exists() else {}
+    return _pipeline_manifest_cache[key]
 
 
-def reload() -> None:
-    """Clear all caches, forcing fresh reads on next access."""
-    global _registry_cache, _seeds_cache, _event_catalog_cache  # noqa: PLW0603
-    global _governance_rules_cache, _system_metrics_cache, _pipeline_manifest_cache  # noqa: PLW0603
-    _registry_cache = None
-    _seeds_cache = None
-    _event_catalog_cache = None
-    _governance_rules_cache = None
-    _system_metrics_cache = None
-    _pipeline_manifest_cache = None
+def reload(config: PathConfig | None = None) -> None:
+    """Clear caches for one config pair or for all cached data."""
+    if config is None:
+        _registry_cache.clear()
+        _seeds_cache.clear()
+        _event_catalog_cache.clear()
+        _governance_rules_cache.clear()
+        _system_metrics_cache.clear()
+        _pipeline_manifest_cache.clear()
+        return
+
+    key = _cache_key(config)
+    _registry_cache.pop(key, None)
+    _seeds_cache.pop(key, None)
+    _event_catalog_cache.pop(key, None)
+    _governance_rules_cache.pop(key, None)
+    _system_metrics_cache.pop(key, None)
+    _pipeline_manifest_cache.pop(key, None)
 
 
 def _read_json(path: Path) -> dict:

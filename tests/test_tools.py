@@ -175,8 +175,18 @@ class TestSeedTools:
     @patch("organvm_mcp.data.loader.load_event_catalog")
     def test_list_events(self, mock_load):
         mock_load.return_value = [
-            {"event_type": "essay.published", "edge": "V->VI", "producer": "ORGAN-V", "consumer": "ORGAN-VI"},
-            {"event_type": "theory.candidate", "edge": "I->IV", "producer": "ORGAN-I", "consumer": "ORGAN-IV"},
+            {
+                "event_type": "essay.published",
+                "edge": "V->VI",
+                "producer": "ORGAN-V",
+                "consumer": "ORGAN-VI",
+            },
+            {
+                "event_type": "theory.candidate",
+                "edge": "I->IV",
+                "producer": "ORGAN-I",
+                "consumer": "ORGAN-IV",
+            },
         ]
         res = seeds.list_events()
         assert len(res["events"]) == 2
@@ -208,7 +218,9 @@ class TestGraphTools:
 
     @patch("organvm_mcp.data.loader.load_registry")
     def test_trace_dependencies_normalizes_canonical_dependency_names(
-        self, mock_load, mock_registry_data,
+        self,
+        mock_load,
+        mock_registry_data,
     ):
         mock_load.return_value = mock_registry_data
         res = graph.trace_dependencies(repo="repo-c", direction="upstream")
@@ -218,7 +230,9 @@ class TestGraphTools:
 
     @patch("organvm_mcp.data.loader.load_registry")
     def test_trace_dependencies_downstream_with_canonical_repo_arg(
-        self, mock_load, mock_registry_data,
+        self,
+        mock_load,
+        mock_registry_data,
     ):
         mock_load.return_value = mock_registry_data
         res = graph.trace_dependencies(
@@ -368,7 +382,6 @@ class TestHealthTools:
         res = health.deadlines(days=30)
         assert res["total_shown"] == 1
         assert res["deadlines"][0]["item_id"] == "F4"
-
 
     @patch("organvm_mcp.data.loader.load_all_seeds")
     @patch("organvm_mcp.data.loader.load_registry")

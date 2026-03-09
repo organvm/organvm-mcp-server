@@ -12,15 +12,17 @@ def distill_patterns() -> dict[str, Any]:
     patterns = []
     for pid in all_pattern_ids():
         p = OPERATIONAL_PATTERNS[pid]
-        patterns.append({
-            "id": pid,
-            "label": p.label,
-            "description": p.description,
-            "tier": p.tier,
-            "scope": p.scope,
-            "phase": p.phase,
-            "sop_name_hint": p.sop_name_hint,
-        })
+        patterns.append(
+            {
+                "id": pid,
+                "label": p.label,
+                "description": p.description,
+                "tier": p.tier,
+                "scope": p.scope,
+                "phase": p.phase,
+                "sop_name_hint": p.sop_name_hint,
+            },
+        )
 
     return {
         "patterns": patterns,
@@ -50,22 +52,21 @@ def distill_coverage() -> dict[str, Any]:
         if matching:
             status = "covered"
             covered += 1
-        elif any(
-            any(word in sf for word in p.label.lower().split())
-            for sf in sop_filenames
-        ):
+        elif any(any(word in sf for word in p.label.lower().split()) for sf in sop_filenames):
             status = "partial"
             partial += 1
         else:
             status = "uncovered"
             uncovered += 1
 
-        entries.append({
-            "pattern_id": pid,
-            "pattern_label": p.label,
-            "status": status,
-            "matching_sops": matching,
-        })
+        entries.append(
+            {
+                "pattern_id": pid,
+                "pattern_label": p.label,
+                "status": status,
+                "matching_sops": matching,
+            },
+        )
 
     return {
         "entries": entries,

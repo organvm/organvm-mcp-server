@@ -15,12 +15,12 @@ from typing import Any
 # Regex to parse the Layer 2 consulting table rows
 # Format: | **Package Name** | SOP Asset | Essay Asset | Target Client | Deliverable | Temporal |
 _TABLE_ROW_RE = re.compile(
-    r"\|\s*\*\*(.+?)\*\*\s*\|"   # column 1: package name in bold
-    r"\s*(.+?)\s*\|"              # column 2: SOP asset
-    r"\s*(.+?)\s*\|"              # column 3: essay asset
-    r"\s*(.+?)\s*\|"              # column 4: target client
-    r"\s*(.+?)\s*\|"              # column 5: deliverable
-    r"\s*(.+?)\s*\|",             # column 6: temporal lens
+    r"\|\s*\*\*(.+?)\*\*\s*\|"  # column 1: package name in bold
+    r"\s*(.+?)\s*\|"  # column 2: SOP asset
+    r"\s*(.+?)\s*\|"  # column 3: essay asset
+    r"\s*(.+?)\s*\|"  # column 4: target client
+    r"\s*(.+?)\s*\|"  # column 5: deliverable
+    r"\s*(.+?)\s*\|",  # column 6: temporal lens
 )
 
 # Extract SOP filenames from the SOP Asset column
@@ -37,10 +37,8 @@ def _parse_consulting_manifest(
     """
     if manifest_path is None:
         from organvm_mcp.data.paths import corpus_dir
-        manifest_path = (
-            corpus_dir() / "docs" / "strategy"
-            / "consulting-services-manifest.md"
-        )
+
+        manifest_path = corpus_dir() / "docs" / "strategy" / "consulting-services-manifest.md"
 
     if not manifest_path.is_file():
         return []
@@ -59,15 +57,17 @@ def _parse_consulting_manifest(
         # Extract SOP--* references from the SOP Asset column
         sop_refs = _SOP_REF_RE.findall(sop_asset)
 
-        packages.append({
-            "name": name,
-            "sop_asset": sop_asset,
-            "sop_refs": [f"{ref}.md" for ref in sop_refs],
-            "essay_asset": essay_asset,
-            "target_client": target_client,
-            "deliverable": deliverable,
-            "temporal_lens": temporal,
-        })
+        packages.append(
+            {
+                "name": name,
+                "sop_asset": sop_asset,
+                "sop_refs": [f"{ref}.md" for ref in sop_refs],
+                "essay_asset": essay_asset,
+                "target_client": target_client,
+                "deliverable": deliverable,
+                "temporal_lens": temporal,
+            },
+        )
 
     return packages
 
@@ -85,13 +85,15 @@ def revenue_pipeline() -> dict[str, Any]:
     products = []
     for organ_key, repo in all_repos(registry):
         if organ_key == "ORGAN-III":
-            products.append({
-                "name": repo.get("name"),
-                "revenue_model": repo.get("revenue_model", "none"),
-                "revenue_status": repo.get("revenue_status", "pre-launch"),
-                "promotion_status": repo.get("promotion_status", "LOCAL"),
-                "tier": repo.get("tier", "standard"),
-            })
+            products.append(
+                {
+                    "name": repo.get("name"),
+                    "revenue_model": repo.get("revenue_model", "none"),
+                    "revenue_status": repo.get("revenue_status", "pre-launch"),
+                    "promotion_status": repo.get("promotion_status", "LOCAL"),
+                    "tier": repo.get("tier", "standard"),
+                },
+            )
 
     live = sum(1 for p in products if p["revenue_status"] == "live")
 
@@ -140,16 +142,18 @@ def revenue_products() -> dict[str, Any]:
     for organ_key, repo in all_repos(registry):
         if organ_key != "ORGAN-III":
             continue
-        products.append({
-            "name": repo.get("name"),
-            "description": repo.get("description", ""),
-            "revenue_model": repo.get("revenue_model", "none"),
-            "revenue_status": repo.get("revenue_status", "pre-launch"),
-            "promotion_status": repo.get("promotion_status", "LOCAL"),
-            "tier": repo.get("tier", "standard"),
-            "implementation_status": repo.get("implementation_status", ""),
-            "ci_workflow": repo.get("ci_workflow", False),
-        })
+        products.append(
+            {
+                "name": repo.get("name"),
+                "description": repo.get("description", ""),
+                "revenue_model": repo.get("revenue_model", "none"),
+                "revenue_status": repo.get("revenue_status", "pre-launch"),
+                "promotion_status": repo.get("promotion_status", "LOCAL"),
+                "tier": repo.get("tier", "standard"),
+                "implementation_status": repo.get("implementation_status", ""),
+                "ci_workflow": repo.get("ci_workflow", False),
+            },
+        )
 
     return {
         "products": products,
@@ -195,7 +199,8 @@ def revenue_readiness(repo_name: str) -> dict[str, Any]:
     promo_reason = "Already at terminal state"
     if next_state:
         promo_ready, promo_reason = check_transition(
-            current_status, next_state,
+            current_status,
+            next_state,
         )
 
     # Impact
@@ -221,9 +226,7 @@ def revenue_grants(days: int = 90) -> dict[str, Any]:
 
     all_deadlines = parse_deadlines()
     filtered = filter_upcoming(all_deadlines, days=days)
-    grants = [
-        d for d in filtered if d.item_id.startswith("F")
-    ]
+    grants = [d for d in filtered if d.item_id.startswith("F")]
 
     return {
         "grants": [
@@ -261,12 +264,14 @@ def revenue_consulting() -> dict[str, Any]:
         refs = pkg["sop_refs"]
         verified = [ref for ref in refs if ref in sop_filenames]
         missing = [ref for ref in refs if ref not in sop_filenames]
-        packages.append({
-            **pkg,
-            "sop_verified": verified,
-            "sop_missing": missing,
-            "ready": len(refs) > 0 and len(missing) == 0,
-        })
+        packages.append(
+            {
+                **pkg,
+                "sop_verified": verified,
+                "sop_missing": missing,
+                "ready": len(refs) > 0 and len(missing) == 0,
+            },
+        )
 
     ready_count = sum(1 for p in packages if p["ready"])
     return {

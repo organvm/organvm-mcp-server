@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from organvm_engine.ci.mandate import CIMandateReport
 
 
 def governance_audit() -> dict[str, Any]:
@@ -23,7 +26,7 @@ def governance_audit() -> dict[str, Any]:
         "warning_count": len(result.warnings),
     }
     if result.ci_mandate is not None:
-        mandate = result.ci_mandate
+        mandate = cast("CIMandateReport", result.ci_mandate)
         out["ci_mandate"] = {
             "total": mandate.total,
             "has_ci": mandate.has_ci,
@@ -73,9 +76,7 @@ def governance_validate_deps() -> dict[str, Any]:
         "passed": result.passed,
         "total_edges": result.total_edges,
         "violations": result.violations,
-        "missing_targets": [
-            {"from": f, "to": t} for f, t in result.missing_targets
-        ],
+        "missing_targets": [{"from": f, "to": t} for f, t in result.missing_targets],
         "self_deps": result.self_deps,
         "back_edges": [
             {"from_repo": f, "to_repo": t, "from_org": fo, "to_org": to}

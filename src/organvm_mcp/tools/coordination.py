@@ -56,7 +56,10 @@ def coordination_check_conflicts(
     from organvm_engine.coordination.claims import check_conflicts
 
     conflicts = check_conflicts(
-        organs=organs, repos=repos, files=files, modules=modules,
+        organs=organs,
+        repos=repos,
+        files=files,
+        modules=modules,
     )
     return {
         "conflict_count": len(conflicts),
@@ -99,8 +102,10 @@ def coordination_tool_checkout(
     from organvm_engine.coordination.tool_lock import tool_checkout
 
     return tool_checkout(
-        handle=handle, tool=tool,
-        command_hint=command_hint, weight=weight,
+        handle=handle,
+        tool=tool,
+        command_hint=command_hint,
+        weight=weight,
     )
 
 

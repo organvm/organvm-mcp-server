@@ -54,18 +54,34 @@ class TestRepoInfo:
 
     def test_default_fields(self):
         ri = RepoInfo(
-            name="x", org="o", organ="O", tier="t",
-            promotion_status="LOCAL", documentation_status="NONE",
+            name="x",
+            org="o",
+            organ="O",
+            tier="t",
+            promotion_status="LOCAL",
+            documentation_status="NONE",
         )
         assert ri.description == ""
         assert ri.dependencies == []
         assert ri.url == ""
 
     def test_dependencies_default_not_shared(self):
-        ri1 = RepoInfo(name="a", org="o", organ="O", tier="t",
-                        promotion_status="LOCAL", documentation_status="NONE")
-        ri2 = RepoInfo(name="b", org="o", organ="O", tier="t",
-                        promotion_status="LOCAL", documentation_status="NONE")
+        ri1 = RepoInfo(
+            name="a",
+            org="o",
+            organ="O",
+            tier="t",
+            promotion_status="LOCAL",
+            documentation_status="NONE",
+        )
+        ri2 = RepoInfo(
+            name="b",
+            org="o",
+            organ="O",
+            tier="t",
+            promotion_status="LOCAL",
+            documentation_status="NONE",
+        )
         ri1.dependencies.append("dep")
         assert ri2.dependencies == []
 
@@ -87,10 +103,24 @@ class TestOrganSummary:
         assert os_.consumes == []
 
     def test_produces_consumes_default_not_shared(self):
-        a = OrganSummary(key="A", name="A", org="a", repo_count=0,
-                         flagship_count=0, standard_count=0, infrastructure_count=0)
-        b = OrganSummary(key="B", name="B", org="b", repo_count=0,
-                         flagship_count=0, standard_count=0, infrastructure_count=0)
+        a = OrganSummary(
+            key="A",
+            name="A",
+            org="a",
+            repo_count=0,
+            flagship_count=0,
+            standard_count=0,
+            infrastructure_count=0,
+        )
+        b = OrganSummary(
+            key="B",
+            name="B",
+            org="b",
+            repo_count=0,
+            flagship_count=0,
+            standard_count=0,
+            infrastructure_count=0,
+        )
         a.produces.append("x")
         assert b.produces == []
 
@@ -110,9 +140,12 @@ class TestSeedEdge:
 
     def test_with_event_type(self):
         se = SeedEdge(
-            source_repo="a", source_organ="I",
-            target_repo="b", target_organ="II",
-            artifact="schemas", event_type="schema.updated",
+            source_repo="a",
+            source_organ="I",
+            target_repo="b",
+            target_organ="II",
+            artifact="schemas",
+            event_type="schema.updated",
         )
         assert se.event_type == "schema.updated"
 
@@ -162,10 +195,23 @@ class TestHealthReport:
 
 class TestRepoContext:
     def test_fields(self):
-        ri = RepoInfo(name="r", org="o", organ="O", tier="t",
-                      promotion_status="LOCAL", documentation_status="NONE")
-        os_ = OrganSummary(key="O", name="O", org="o", repo_count=1,
-                           flagship_count=0, standard_count=1, infrastructure_count=0)
+        ri = RepoInfo(
+            name="r",
+            org="o",
+            organ="O",
+            tier="t",
+            promotion_status="LOCAL",
+            documentation_status="NONE",
+        )
+        os_ = OrganSummary(
+            key="O",
+            name="O",
+            org="o",
+            repo_count=1,
+            flagship_count=0,
+            standard_count=1,
+            infrastructure_count=0,
+        )
         rc = RepoContext(
             repo=ri,
             organ_summary=os_,

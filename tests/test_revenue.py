@@ -113,10 +113,14 @@ class TestRevenueGrants:
         from organvm_engine.deadlines.parser import Deadline
 
         funding = Deadline(
-            item_id="F4", description="NEH Grant", deadline_date=date(2026, 5, 1),
+            item_id="F4",
+            description="NEH Grant",
+            deadline_date=date(2026, 5, 1),
         )
         non_funding = Deadline(
-            item_id="E3", description="Google Creative", deadline_date=date(2026, 5, 15),
+            item_id="E3",
+            description="Google Creative",
+            deadline_date=date(2026, 5, 15),
         )
         mock_parse.return_value = [funding, non_funding]
         mock_filter.return_value = [funding, non_funding]
@@ -198,16 +202,10 @@ class TestRevenueConsulting:
         res = revenue.revenue_consulting()
         assert res["total"] == 2
         # Stranger Test has its SOP → ready
-        stranger = next(
-            p for p in res["packages"]
-            if p["name"] == "Stranger Test Protocol"
-        )
+        stranger = next(p for p in res["packages"] if p["name"] == "Stranger Test Protocol")
         assert stranger["ready"] is True
         # Orchestration has no SOP refs → not ready
-        orch = next(
-            p for p in res["packages"]
-            if p["name"] == "Orchestration Architecture"
-        )
+        orch = next(p for p in res["packages"] if p["name"] == "Orchestration Architecture")
         assert orch["ready"] is False
 
     @patch("organvm_mcp.tools.revenue._parse_consulting_manifest")

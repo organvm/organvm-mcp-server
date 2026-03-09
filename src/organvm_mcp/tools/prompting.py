@@ -21,8 +21,6 @@ def prompting_all() -> dict[str, Any]:
     from organvm_engine.prompting.standards import PROVIDER_GUIDELINES
 
     return {
-        "providers": {
-            key: asdict(g) for key, g in PROVIDER_GUIDELINES.items()
-        },
+        "providers": {key: asdict(g) for key, g in PROVIDER_GUIDELINES.items()},
         "total": len(PROVIDER_GUIDELINES),
     }

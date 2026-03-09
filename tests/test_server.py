@@ -2,9 +2,7 @@
 
 import asyncio
 
-import pytest
-
-from organvm_mcp.server import TOOLS, _DISPATCH, call_tool
+from organvm_mcp.server import _DISPATCH, TOOLS, call_tool
 
 
 class TestServerRegistration:

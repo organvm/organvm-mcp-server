@@ -16,8 +16,10 @@ def isolated_claims(tmp_path, monkeypatch):
 class TestPunchIn:
     def test_returns_claim_id(self):
         res = coordination.coordination_punch_in(
-            agent="claude", session_id="test-1",
-            organs=["ORGAN-I"], scope="theory work",
+            agent="claude",
+            session_id="test-1",
+            organs=["ORGAN-I"],
+            scope="theory work",
         )
         assert "claim_id" in res
         assert res["conflict_count"] == 0
@@ -25,11 +27,13 @@ class TestPunchIn:
 
     def test_detects_conflicts(self):
         coordination.coordination_punch_in(
-            agent="claude", session_id="s1",
+            agent="claude",
+            session_id="s1",
             repos=["organvm-engine"],
         )
         res = coordination.coordination_punch_in(
-            agent="gemini", session_id="s2",
+            agent="gemini",
+            session_id="s2",
             repos=["organvm-engine"],
         )
         assert res["conflict_count"] == 1
@@ -38,7 +42,9 @@ class TestPunchIn:
 class TestPunchOut:
     def test_release(self):
         r = coordination.coordination_punch_in(
-            agent="claude", session_id="s1", organs=["ORGAN-I"],
+            agent="claude",
+            session_id="s1",
+            organs=["ORGAN-I"],
         )
         res = coordination.coordination_punch_out(r["claim_id"])
         assert res["released"] is True
@@ -55,8 +61,10 @@ class TestWorkBoard:
 
     def test_board_shows_claims(self):
         coordination.coordination_punch_in(
-            agent="claude", session_id="s1",
-            organs=["ORGAN-I"], scope="test",
+            agent="claude",
+            session_id="s1",
+            organs=["ORGAN-I"],
+            scope="test",
         )
         res = coordination.coordination_work_board()
         assert res["active_claims"] == 1
@@ -70,7 +78,8 @@ class TestCheckConflicts:
 
     def test_detects_conflict(self):
         coordination.coordination_punch_in(
-            agent="claude", session_id="s1",
+            agent="claude",
+            session_id="s1",
             modules=["governance"],
         )
         res = coordination.coordination_check_conflicts(modules=["governance"])
@@ -86,7 +95,8 @@ class TestCapacity:
 
     def test_capacity_after_punch_in(self):
         coordination.coordination_punch_in(
-            agent="claude", session_id="s1",
+            agent="claude",
+            session_id="s1",
             resource_weight="heavy",
         )
         res = coordination.coordination_capacity()
@@ -95,7 +105,8 @@ class TestCapacity:
 
     def test_resource_weight_in_punch_in(self):
         res = coordination.coordination_punch_in(
-            agent="claude", session_id="s1",
+            agent="claude",
+            session_id="s1",
             resource_weight="light",
         )
         assert res["resource_weight"] == "light"
@@ -105,7 +116,8 @@ class TestCapacity:
 class TestHandles:
     def test_punch_in_returns_handle(self):
         res = coordination.coordination_punch_in(
-            agent="claude", session_id="s1",
+            agent="claude",
+            session_id="s1",
             organs=["ORGAN-I"],
         )
         assert "handle" in res
@@ -113,17 +125,23 @@ class TestHandles:
 
     def test_handles_unique(self):
         r1 = coordination.coordination_punch_in(
-            agent="claude", session_id="s1", organs=["ORGAN-I"],
+            agent="claude",
+            session_id="s1",
+            organs=["ORGAN-I"],
         )
         r2 = coordination.coordination_punch_in(
-            agent="claude", session_id="s2", organs=["ORGAN-II"],
+            agent="claude",
+            session_id="s2",
+            organs=["ORGAN-II"],
         )
         assert r1["handle"] != r2["handle"]
 
     def test_handle_in_work_board(self):
         coordination.coordination_punch_in(
-            agent="claude", session_id="s1",
-            organs=["ORGAN-I"], scope="test",
+            agent="claude",
+            session_id="s1",
+            organs=["ORGAN-I"],
+            scope="test",
         )
         res = coordination.coordination_work_board()
         claims = res["by_agent"]["claude"]
@@ -133,7 +151,8 @@ class TestHandles:
 class TestTestObligationsMCP:
     def test_punch_in_with_obligations(self):
         res = coordination.coordination_punch_in(
-            agent="claude", session_id="s1",
+            agent="claude",
+            session_id="s1",
             repos=["engine"],
             test_obligations=["pytest engine/tests/ -v"],
         )
@@ -141,7 +160,8 @@ class TestTestObligationsMCP:
 
     def test_obligations_in_work_board(self):
         coordination.coordination_punch_in(
-            agent="claude", session_id="s1",
+            agent="claude",
+            session_id="s1",
             test_obligations=["pytest tests/ -v"],
         )
         res = coordination.coordination_work_board()
@@ -155,7 +175,8 @@ class TestProveSweepMCP:
 
     def test_sweep_with_obligations(self):
         coordination.coordination_punch_in(
-            agent="claude", session_id="s1",
+            agent="claude",
+            session_id="s1",
             test_obligations=["pytest engine/ -v", "ruff check src/"],
         )
         res = coordination.coordination_prove_sweep()

@@ -1,69 +1,57 @@
-"""Workspace path resolution.
-
-Resolves canonical paths to ORGANVM data sources. Uses environment
-variables when available, falls back to conventional defaults.
-
-Environment variables:
-    ORGANVM_WORKSPACE_DIR — workspace root (default: ~/Workspace)
-    ORGANVM_CORPUS_DIR — corpus repo (default: <workspace>/meta-organvm/organvm-corpvs-testamentvm)
-"""
+"""Workspace path resolution for MCP loaders and tools."""
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
+from organvm_engine.paths import PathConfig, resolve_path_config
+
 # Conventional defaults
-_DEFAULT_WORKSPACE = Path.home() / "Workspace"
-_DEFAULT_CORPUS_SUBPATH = "meta-organvm/organvm-corpvs-testamentvm"
 _DEFAULT_ENGINE_SUBPATH = "meta-organvm/organvm-engine"
 _DEFAULT_ORCHESTRATOR_SUBPATH = "organvm-iv-taxis/orchestration-start-here"
 
 
-def workspace_root() -> Path:
+def workspace_root(config: PathConfig | None = None) -> Path:
     """Return the workspace root directory."""
-    return Path(os.environ.get("ORGANVM_WORKSPACE_DIR", str(_DEFAULT_WORKSPACE)))
+    return resolve_path_config(config).workspace_root()
 
 
-def corpus_dir() -> Path:
+def corpus_dir(config: PathConfig | None = None) -> Path:
     """Return the path to organvm-corpvs-testamentvm."""
-    env = os.environ.get("ORGANVM_CORPUS_DIR")
-    if env:
-        return Path(env)
-    return workspace_root() / _DEFAULT_CORPUS_SUBPATH
+    return resolve_path_config(config).corpus_dir()
 
 
-def registry_path() -> Path:
+def registry_path(config: PathConfig | None = None) -> Path:
     """Return the path to registry-v2.json."""
-    return corpus_dir() / "registry-v2.json"
+    return resolve_path_config(config).registry_path()
 
 
-def event_catalog_path() -> Path:
+def event_catalog_path(config: PathConfig | None = None) -> Path:
     """Return the path to event-catalog.yaml."""
-    return workspace_root() / _DEFAULT_ORCHESTRATOR_SUBPATH / "docs" / "event-catalog.yaml"
+    return workspace_root(config) / _DEFAULT_ORCHESTRATOR_SUBPATH / "docs" / "event-catalog.yaml"
 
 
-def governance_rules_path() -> Path:
+def governance_rules_path(config: PathConfig | None = None) -> Path:
     """Return the path to governance-rules.json."""
-    return corpus_dir() / "governance-rules.json"
+    return resolve_path_config(config).governance_rules_path()
 
 
-def engine_dir() -> Path:
+def engine_dir(config: PathConfig | None = None) -> Path:
     """Return the path to organvm-engine."""
-    return workspace_root() / _DEFAULT_ENGINE_SUBPATH
+    return workspace_root(config) / _DEFAULT_ENGINE_SUBPATH
 
 
-def system_metrics_path() -> Path:
+def system_metrics_path(config: PathConfig | None = None) -> Path:
     """Return the path to system-metrics.json."""
-    return corpus_dir() / "system-metrics.json"
+    return corpus_dir(config) / "system-metrics.json"
 
 
-def atoms_data_dir() -> Path:
+def atoms_data_dir(config: PathConfig | None = None) -> Path:
     """Return the path to the atoms pipeline data directory."""
-    return corpus_dir() / "data" / "atoms"
+    return corpus_dir(config) / "data" / "atoms"
 
 
-def organ_directories() -> dict[str, Path]:
+def organ_directories(config: PathConfig | None = None) -> dict[str, Path]:
     """Return mapping of organ keys to their workspace directories.
 
     Returns:
@@ -71,5 +59,5 @@ def organ_directories() -> dict[str, Path]:
     """
     from organvm_engine.git.superproject import ORGAN_DIR_MAP
 
-    ws = workspace_root()
+    ws = workspace_root(config)
     return {key: ws / subpath for key, subpath in ORGAN_DIR_MAP.items()}

@@ -312,9 +312,7 @@ TOOLS = [
     ),
     Tool(
         name="organvm_revenue_products",
-        description=(
-            "ORGAN-III products with revenue model, status, and deployment readiness."
-        ),
+        description=("ORGAN-III products with revenue model, status, and deployment readiness."),
         inputSchema={"type": "object", "properties": {}},
     ),
     Tool(
@@ -450,9 +448,7 @@ TOOLS = [
     ),
     Tool(
         name="organvm_session_list",
-        description=(
-            "List recent sessions with metadata (agent, project, date, duration)."
-        ),
+        description=("List recent sessions with metadata (agent, project, date, duration)."),
         inputSchema={
             "type": "object",
             "properties": {
@@ -579,9 +575,7 @@ TOOLS = [
     ),
     Tool(
         name="organvm_distill_scaffold",
-        description=(
-            "Generate a SOP markdown scaffold for an uncovered operational pattern."
-        ),
+        description=("Generate a SOP markdown scaffold for an uncovered operational pattern."),
         inputSchema={
             "type": "object",
             "properties": {
@@ -785,9 +779,7 @@ TOOLS = [
     ),
     Tool(
         name="organvm_punch_out",
-        description=(
-            "Punch out: release a work claim. Pass the claim_id from punch_in."
-        ),
+        description=("Punch out: release a work claim. Pass the claim_id from punch_in."),
         inputSchema={
             "type": "object",
             "properties": {
@@ -895,8 +887,7 @@ TOOLS = [
     Tool(
         name="organvm_tool_checkin",
         description=(
-            "Check in a tool after a command completes. "
-            "Releases the lane for other agents."
+            "Check in a tool after a command completes. Releases the lane for other agents."
         ),
         inputSchema={
             "type": "object",
@@ -1087,11 +1078,11 @@ _DISPATCH = {
     "organvm_revenue_consulting": lambda args: revenue.revenue_consulting(),
     # Governance
     "organvm_governance_audit": lambda args: governance.governance_audit(),
-    "organvm_governance_check_transition": lambda args: (
-        governance.governance_check_transition(**args)
+    "organvm_governance_check_transition": lambda args: governance.governance_check_transition(
+        **args,
     ),
-    "organvm_governance_valid_transitions": lambda args: (
-        governance.governance_valid_transitions(**args)
+    "organvm_governance_valid_transitions": lambda args: governance.governance_valid_transitions(
+        **args,
     ),
     "organvm_governance_validate_deps": lambda args: governance.governance_validate_deps(),
     "organvm_governance_impact": lambda args: governance.governance_impact(**args),

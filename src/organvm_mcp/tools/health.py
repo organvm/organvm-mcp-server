@@ -33,7 +33,8 @@ def system_health() -> dict[str, Any]:
     total = result["total_repos"]
     all_registry_repos = list(all_repos(registry))
     seed_count = sum(
-        1 for _, repo in all_registry_repos
+        1
+        for _, repo in all_registry_repos
         if isinstance(repo.get("name"), str) and repo["name"] in seed_repo_names
     )
     result["seed_coverage"] = round(seed_count / total, 4) if total else 0.0
