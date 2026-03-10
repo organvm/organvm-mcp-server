@@ -82,15 +82,15 @@ class TestLoaderCaching:
         assert result == []
 
     def test_reload_clears_all_caches(self):
-        # Set caches to non-None values directly
-        loader_mod._registry_cache = {"test": True}
-        loader_mod._seeds_cache = [{"test": True}]
-        loader_mod._event_catalog_cache = [{"test": True}]
-        loader_mod._governance_rules_cache = {"test": True}
+        # Set caches to non-empty values directly
+        loader_mod._registry_cache[("test", "test")] = {"data": True}
+        loader_mod._seeds_cache[("test", "test")] = [{"data": True}]
+        loader_mod._event_catalog_cache[("test", "test")] = [{"data": True}]
+        loader_mod._governance_rules_cache[("test", "test")] = {"data": True}
 
         loader_mod.reload()
 
-        assert loader_mod._registry_cache is None
-        assert loader_mod._seeds_cache is None
-        assert loader_mod._event_catalog_cache is None
-        assert loader_mod._governance_rules_cache is None
+        assert loader_mod._registry_cache == {}
+        assert loader_mod._seeds_cache == {}
+        assert loader_mod._event_catalog_cache == {}
+        assert loader_mod._governance_rules_cache == {}

@@ -15,7 +15,7 @@ def governance_audit() -> dict[str, Any]:
     from organvm_mcp.data.loader import load_governance_rules, load_registry
 
     registry = load_registry()
-    rules = load_governance_rules() or None
+    rules = load_governance_rules()
     result = run_audit(registry, rules=rules, verify_ci=True)
     out: dict[str, Any] = {
         "passed": result.passed,
