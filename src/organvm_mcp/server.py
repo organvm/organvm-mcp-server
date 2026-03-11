@@ -17,6 +17,7 @@ from mcp.types import TextContent, Tool
 
 from organvm_mcp.tools import (
     atoms,
+    audit,
     context,
     coordination,
     distill,
@@ -31,6 +32,7 @@ from organvm_mcp.tools import (
     seeds,
     sessions,
     sops,
+    verification,
 )
 
 server = Server("organvm")
@@ -1042,6 +1044,69 @@ TOOLS = [
             },
         },
     ),
+    # Audit
+    Tool(
+        name="organvm_infrastructure_audit",
+        description=(
+            "Run infrastructure wiring audit — 6-layer verification of filesystem, "
+            "registry/seed reconciliation, seed completeness, edge resolution, "
+            "content artifacts, and deposit scanning. Returns findings by severity."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organ": {
+                    "type": "string",
+                    "description": "Optional organ filter (e.g. ORGAN-I, META-ORGANVM)",
+                },
+                "layer": {
+                    "type": "string",
+                    "description": (
+                        "Optional single layer: filesystem, reconcile, seeds, "
+                        "edges, content, absorption"
+                    ),
+                },
+                "scope": {
+                    "type": "string",
+                    "description": "Optional repo name to scope the audit to",
+                },
+            },
+        },
+    ),
+    # Verification
+    Tool(
+        name="organvm_verify_system",
+        description=(
+            "Run formal verification of the dispatch pipeline — checks contract "
+            "coverage (Hoare Logic), temporal ordering (DAG enforcement), and "
+            "idempotency (duplicate dispatch detection). Returns a unified report."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "include_ledger": {
+                    "type": "boolean",
+                    "description": "Include dispatch ledger analysis (default: true)",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_verify_contracts",
+        description=(
+            "Check registered dispatch contracts — shows required payload fields, "
+            "validators, and consumption semantics for each event type."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "event": {
+                    "type": "string",
+                    "description": "Optional specific event type to check",
+                },
+            },
+        },
+    ),
 ]
 
 
@@ -1133,6 +1198,11 @@ _DISPATCH = {
     "organvm_pillar_dna": lambda args: ecosystem.pillar_dna(**args),
     "organvm_ecosystem_staleness": lambda args: ecosystem.ecosystem_staleness(**args),
     "organvm_ecosystem_lifecycle": lambda args: ecosystem.ecosystem_lifecycle(**args),
+    # Audit
+    "organvm_infrastructure_audit": lambda args: audit.infrastructure_audit(**args),
+    # Verification
+    "organvm_verify_system": lambda args: verification.verify_system(**args),
+    "organvm_verify_contracts": lambda args: verification.verify_contracts(**args),
 }
 
 
@@ -1172,8 +1242,17 @@ def main() -> None:
 
 async def _run() -> None:
     """Async entry point."""
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(read_stream, write_stream, server.create_initialization_options())
+    import sys
+    # Redirect stdout to stderr to prevent non-JSON-RPC output from breaking the protocol
+    original_stdout = sys.stdout
+    sys.stdout = sys.stderr
+
+    try:
+        async with stdio_server() as (read_stream, write_stream):
+            # Ensure we use the original stdout for the MCP transport
+            await server.run(read_stream, write_stream, server.create_initialization_options())
+    finally:
+        sys.stdout = original_stdout
 
 
 if __name__ == "__main__":
