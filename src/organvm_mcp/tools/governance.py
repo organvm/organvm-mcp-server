@@ -112,3 +112,31 @@ def governance_feedback_loops() -> dict[str, Any]:
     registry = load_registry()
     inventory = detect_active_loops(registry)
     return inventory.to_dict()
+
+
+def governance_dictums(level: str | None = None) -> dict[str, Any]:
+    """List all constitutional dictums, optionally filtered by level."""
+    from organvm_engine.governance.dictums import list_all_dictums
+
+    from organvm_mcp.data.loader import load_governance_rules
+
+    rules = load_governance_rules()
+    all_dicts = list_all_dictums(rules)
+    if level:
+        all_dicts = [d for d in all_dicts if d["level"] == level]
+    return {
+        "count": len(all_dicts),
+        "dictums": all_dicts,
+    }
+
+
+def governance_check_dictums() -> dict[str, Any]:
+    """Run dictum compliance checks against the live registry."""
+    from organvm_engine.governance.dictums import check_all_dictums
+
+    from organvm_mcp.data.loader import load_governance_rules, load_registry
+
+    registry = load_registry()
+    rules = load_governance_rules()
+    report = check_all_dictums(registry, rules)
+    return report.to_dict()

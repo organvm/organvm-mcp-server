@@ -32,6 +32,7 @@ from organvm_mcp.tools import (
     seeds,
     sessions,
     sops,
+    styx,
     verification,
 )
 
@@ -436,6 +437,33 @@ TOOLS = [
         description=(
             "Feedback loop inventory — positive and negative loops "
             "with active detection from registry and seed evidence."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_governance_dictums",
+        description=(
+            "List constitutional dictums — axioms, organ dictums, "
+            "and repo rules from the Ontological Constitution. "
+            "Filter by level (axiom/organ/repo)."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "level": {
+                    "type": "string",
+                    "enum": ["axiom", "organ", "repo"],
+                    "description": "Filter by dictum tier (optional)",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_governance_check_dictums",
+        description=(
+            "Run dictum compliance checks — validates all enforceable "
+            "dictums (AX-1 DAG, AX-3 TTL, OD-III factory gate, etc.) "
+            "against the live registry. Returns violations by severity."
         ),
         inputSchema={"type": "object", "properties": {}},
     ),
@@ -1107,6 +1135,61 @@ TOOLS = [
             },
         },
     ),
+    # Styx Orchestration
+    Tool(
+        name="organvm_styx_orchestrate_stake",
+        description=(
+            "Trigger a behavioral stake orchestration sequence. "
+            "Validates the stake contract and triggers the Taxis receiver."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "commitment": {
+                    "type": "string",
+                    "description": "The theoretical commitment being staked against.",
+                },
+                "amount": {
+                    "type": "integer",
+                    "description": "Stake amount in fiat units.",
+                },
+                "source_organ": {
+                    "type": "string",
+                    "description": "The organ repo creating the stake (default: organvm-iii-ergon).",
+                    "default": "organvm-iii-ergon",
+                },
+            },
+            "required": ["commitment", "amount"],
+        },
+    ),
+    Tool(
+        name="organvm_styx_resolve_audit",
+        description=("Resolve a behavioral stake based on peer audit results."),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "stake_id": {
+                    "type": "string",
+                    "description": "The unique ID of the stake to resolve.",
+                },
+                "outcome": {
+                    "type": "string",
+                    "enum": ["PASS", "FAIL"],
+                    "description": "The outcome of the peer audit.",
+                },
+                "auditor": {
+                    "type": "string",
+                    "description": "The organ repo performing the audit (default: organvm-vi-koinonia).",
+                    "default": "organvm-vi-koinonia",
+                },
+                "proof_hash": {
+                    "type": "string",
+                    "description": "The cryptographic proof hash from the audit.",
+                },
+            },
+            "required": ["stake_id", "outcome", "proof_hash"],
+        },
+    ),
 ]
 
 
@@ -1152,6 +1235,8 @@ _DISPATCH = {
     "organvm_governance_validate_deps": lambda args: governance.governance_validate_deps(),
     "organvm_governance_impact": lambda args: governance.governance_impact(**args),
     "organvm_governance_feedback_loops": lambda args: governance.governance_feedback_loops(),
+    "organvm_governance_dictums": lambda args: governance.governance_dictums(**args),
+    "organvm_governance_check_dictums": lambda args: governance.governance_check_dictums(),
     # Sessions
     "organvm_session_agents": lambda args: sessions.session_agents(),
     "organvm_session_list": lambda args: sessions.session_list(**args),
@@ -1203,6 +1288,9 @@ _DISPATCH = {
     # Verification
     "organvm_verify_system": lambda args: verification.verify_system(**args),
     "organvm_verify_contracts": lambda args: verification.verify_contracts(**args),
+    # Styx
+    "organvm_styx_orchestrate_stake": lambda args: styx.styx_orchestrate_stake(**args),
+    "organvm_styx_resolve_audit": lambda args: styx.styx_resolve_audit(**args),
 }
 
 
