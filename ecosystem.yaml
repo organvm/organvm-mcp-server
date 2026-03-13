@@ -1,0 +1,23 @@
+schema_version: '1.0'
+repo: organvm-mcp-server
+organ: META
+display_name: "ORGANVM MCP Server — 63 tools exposing full system graph to Claude Code sessions"
+
+delivery:
+- platform: python_library
+  status: live
+  priority: critical
+  notes: "MCP server on stdio, 15 tool groups, imports organvm-engine directly"
+  next_action: "Add ecosystem tools (staleness, lifecycle, sync-dna)"
+- platform: mcp_server
+  status: live
+  priority: critical
+  notes: "Configured in ~/.claude/mcp.json, auto-starts with Claude Code"
+  next_action: "Maintain tool parity with engine capabilities"
+
+content:
+- platform: docs_site
+  status: not_started
+  priority: high
+  notes: "Tool reference, configuration guide, usage examples"
+  next_action: "Generate tool reference from dispatch table"

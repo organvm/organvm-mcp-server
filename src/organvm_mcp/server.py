@@ -27,6 +27,7 @@ from organvm_mcp.tools import (
     health,
     metrics,
     prompting,
+    pulse,
     registry,
     revenue,
     seeds,
@@ -1072,6 +1073,180 @@ TOOLS = [
             },
         },
     ),
+    # ── Pulse tools ──────────────────────────────────────────────────
+    Tool(
+        name="organvm_pulse_mood",
+        description=(
+            "System mood — qualitative health summary derived from "
+            "organism health %, density, staleness, and velocity signals. "
+            "Returns mood (fragile/stressed/stagnant/steady/growing/thriving) "
+            "with reasoning."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_pulse_density",
+        description=(
+            "Interconnection density — edge saturation, cross-organ wiring, "
+            "seed/CI/test/doc coverage, and composite density score (0-100). "
+            "Low density = under-wired and fragile."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_pulse_events",
+        description=(
+            "Recent events from the append-only event bus. "
+            "Filter by event type and limit. "
+            "Shows registry updates, promotions, gate changes, mood shifts."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "event_type": {
+                    "type": "string",
+                    "description": "Filter by event type (e.g. 'repo.promoted', 'gate.changed')",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max events to return (default 20)",
+                    "default": 20,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_pulse_nerve",
+        description=(
+            "Subscription wiring from seed.yaml declarations — "
+            "which repos listen for which events. "
+            "Optionally filter to listeners for a specific event type."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "event_type": {
+                    "type": "string",
+                    "description": "Show only listeners for this event type",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_pulse_emit",
+        description=(
+            "Emit an event to the event bus and show propagation results. "
+            "Returns the emitted event and list of notified subscribers."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "event_type": {
+                    "type": "string",
+                    "description": "Event type string (e.g. 'repo.promoted')",
+                },
+                "source": {
+                    "type": "string",
+                    "description": "Event source identifier (default: 'mcp')",
+                    "default": "mcp",
+                },
+                "payload": {
+                    "type": "object",
+                    "description": "Optional JSON payload for the event",
+                },
+            },
+            "required": ["event_type"],
+        },
+    ),
+    Tool(
+        name="organvm_pulse_briefing",
+        description=(
+            "Session briefing for recent system activity — "
+            "what changed in the last N hours. "
+            "Useful for session openers."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "hours": {
+                    "type": "integer",
+                    "description": "Hours to look back (default 24)",
+                    "default": 24,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_pulse_memory",
+        description=(
+            "Query shared cross-agent memory — insights recorded by "
+            "Claude, Gemini, Codex sessions for collective awareness."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "description": "Filter by category (e.g. 'bug', 'pattern', 'decision')",
+                },
+                "agent": {
+                    "type": "string",
+                    "description": "Filter by agent name (claude, gemini, codex)",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max insights to return (default 20)",
+                    "default": 20,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_pulse_record_insight",
+        description=(
+            "Record a new insight to shared cross-agent memory. "
+            "Other agents will see this in pulse_memory queries."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "agent": {
+                    "type": "string",
+                    "description": "Agent recording the insight (claude, gemini, codex)",
+                },
+                "category": {
+                    "type": "string",
+                    "description": "Insight category (bug, pattern, decision, observation)",
+                },
+                "content": {
+                    "type": "string",
+                    "description": "The insight text",
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional tags for the insight",
+                },
+                "organ": {
+                    "type": "string",
+                    "description": "Optional organ key this insight relates to",
+                },
+                "repo": {
+                    "type": "string",
+                    "description": "Optional repo name this insight relates to",
+                },
+            },
+            "required": ["agent", "category", "content"],
+        },
+    ),
+    Tool(
+        name="organvm_pulse_flow",
+        description=(
+            "Dependency flow activity — measures data flow through "
+            "the seed graph over recent time window."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
     # Audit
     Tool(
         name="organvm_infrastructure_audit",
@@ -1283,6 +1458,16 @@ _DISPATCH = {
     "organvm_pillar_dna": lambda args: ecosystem.pillar_dna(**args),
     "organvm_ecosystem_staleness": lambda args: ecosystem.ecosystem_staleness(**args),
     "organvm_ecosystem_lifecycle": lambda args: ecosystem.ecosystem_lifecycle(**args),
+    # Pulse
+    "organvm_pulse_mood": lambda args: pulse.pulse_mood(),
+    "organvm_pulse_density": lambda args: pulse.pulse_density(),
+    "organvm_pulse_events": lambda args: pulse.pulse_events(**args),
+    "organvm_pulse_nerve": lambda args: pulse.pulse_nerve(**args),
+    "organvm_pulse_emit": lambda args: pulse.pulse_emit(**args),
+    "organvm_pulse_briefing": lambda args: pulse.pulse_briefing(**args),
+    "organvm_pulse_memory": lambda args: pulse.pulse_memory(**args),
+    "organvm_pulse_record_insight": lambda args: pulse.pulse_record_insight(**args),
+    "organvm_pulse_flow": lambda args: pulse.pulse_flow(),
     # Audit
     "organvm_infrastructure_audit": lambda args: audit.infrastructure_audit(**args),
     # Verification
@@ -1331,16 +1516,12 @@ def main() -> None:
 async def _run() -> None:
     """Async entry point."""
     import sys
-    # Redirect stdout to stderr to prevent non-JSON-RPC output from breaking the protocol
-    original_stdout = sys.stdout
-    sys.stdout = sys.stderr
-
-    try:
-        async with stdio_server() as (read_stream, write_stream):
-            # Ensure we use the original stdout for the MCP transport
-            await server.run(read_stream, write_stream, server.create_initialization_options())
-    finally:
-        sys.stdout = original_stdout
+    # stdio_server() reads sys.stdout.buffer at entry, so we must call it
+    # BEFORE redirecting stdout. Then redirect so stray print() calls go to
+    # stderr instead of corrupting the JSON-RPC stream.
+    async with stdio_server() as (read_stream, write_stream):
+        sys.stdout = sys.stderr
+        await server.run(read_stream, write_stream, server.create_initialization_options())
 
 
 if __name__ == "__main__":
