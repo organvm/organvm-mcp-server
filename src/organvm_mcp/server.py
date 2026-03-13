@@ -1248,6 +1248,36 @@ TOOLS = [
         ),
         inputSchema={"type": "object", "properties": {}},
     ),
+    Tool(
+        name="organvm_pulse_scan",
+        description=(
+            "Run a full pulse cycle: scan all sensors for changes, "
+            "compute AMMOI density index, store snapshot to history, "
+            "emit heartbeat event. Returns the AMMOI snapshot."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_pulse_ammoi",
+        description=(
+            "Get the AMMOI (Adaptive Macro-Micro Ontological Index) — "
+            "multi-scale density at system, organ, or repo level. "
+            "Shows interconnection density, edge counts, temporal deltas."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organ": {
+                    "type": "string",
+                    "description": "Show organ-level density (e.g. ORGAN-I, META-ORGANVM)",
+                },
+                "repo": {
+                    "type": "string",
+                    "description": "Show entity-level density for a specific repo",
+                },
+            },
+        },
+    ),
     # Audit
     Tool(
         name="organvm_infrastructure_audit",
@@ -1673,6 +1703,8 @@ _DISPATCH = {
     "organvm_pulse_memory": lambda args: pulse.pulse_memory(**args),
     "organvm_pulse_record_insight": lambda args: pulse.pulse_record_insight(**args),
     "organvm_pulse_flow": lambda args: pulse.pulse_flow(),
+    "organvm_pulse_scan": lambda args: pulse.pulse_scan(),
+    "organvm_pulse_ammoi": lambda args: pulse.pulse_ammoi(**args),
     # Audit
     "organvm_infrastructure_audit": lambda args: audit.infrastructure_audit(**args),
     # Verification

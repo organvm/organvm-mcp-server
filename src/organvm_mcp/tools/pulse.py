@@ -199,3 +199,44 @@ def pulse_flow() -> dict[str, Any]:
         return {"error": "flow module not yet available"}
     except Exception as exc:
         return {"error": str(exc)}
+
+
+def pulse_scan() -> dict[str, Any]:
+    """Run a full pulse cycle: sensors + AMMOI computation."""
+    try:
+        from organvm_engine.pulse.rhythm import pulse_once
+
+        workspace = _workspace_root()
+        ammoi = pulse_once(workspace=workspace)
+        return ammoi.to_dict()
+    except ImportError:
+        return {"error": "rhythm module not yet available"}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def pulse_ammoi(
+    organ: str | None = None,
+    repo: str | None = None,
+) -> dict[str, Any]:
+    """Get AMMOI density at system, organ, or repo scale."""
+    try:
+        from organvm_engine.pulse.ammoi import compute_ammoi
+
+        workspace = _workspace_root()
+        ammoi = compute_ammoi(workspace=workspace)
+
+        if organ and organ in ammoi.organs:
+            return {
+                "scale": "organ",
+                "organ": organ,
+                **ammoi.organs[organ].to_dict(),
+                "system_density": ammoi.system_density,
+                "compressed_text": ammoi.compressed_text,
+            }
+
+        return ammoi.to_dict()
+    except ImportError:
+        return {"error": "ammoi module not yet available"}
+    except Exception as exc:
+        return {"error": str(exc)}
