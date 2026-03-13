@@ -203,6 +203,112 @@ def ontologia_status() -> dict[str, Any]:
     return result
 
 
+def ontologia_sense(
+    sensor: str | None = None,
+) -> dict[str, Any]:
+    """Run sensors and return detected changes.
+
+    Args:
+        sensor: Optional sensor name to run (registry_sensor, soak_sensor,
+                ci_sensor, promotion_sensor). Runs all if not specified.
+
+    Returns:
+        {sensor_name: [signals...]} grouped by sensor.
+    """
+    from organvm_engine.ontologia.sensors import scan_all
+
+    results = scan_all(sensor_filter=sensor)
+    # Convert signals to plain dicts
+    out: dict[str, list] = {}
+    for name, signals in results.items():
+        out[name] = [
+            {
+                "sensor": s.sensor_name if hasattr(s, "sensor_name") else s.get("sensor", ""),
+                "type": s.signal_type if hasattr(s, "signal_type") else s.get("type", ""),
+                "entity": s.entity_id if hasattr(s, "entity_id") else s.get("entity", ""),
+                "details": s.details if hasattr(s, "details") else s.get("details", {}),
+            }
+            for s in signals
+        ]
+    total = sum(len(v) for v in out.values())
+    return {"sensors": out, "total_signals": total}
+
+
+def ontologia_tensions() -> dict[str, Any]:
+    """Run tension detection across all entities.
+
+    Returns:
+        Orphans, naming conflicts, overcoupled entities with severity scores.
+    """
+    from organvm_engine.ontologia.inference_bridge import detect_tensions
+
+    return detect_tensions()
+
+
+def ontologia_policies(evaluate: bool = False) -> dict[str, Any]:
+    """List or evaluate governance policies.
+
+    Args:
+        evaluate: If True, evaluate policies against all entities.
+                  If False, just list the defined policies.
+
+    Returns:
+        Policy list or evaluation results with triggered policies.
+    """
+    from organvm_engine.ontologia.policies import evaluate_all_policies, load_policies
+
+    if evaluate:
+        return evaluate_all_policies()
+    return {"policies": load_policies()}
+
+
+def ontologia_health(entity: str | None = None) -> dict[str, Any]:
+    """Composite entity health — tensions, clusters, and blast radius.
+
+    Args:
+        entity: Optional entity UID or name for per-entity detail.
+
+    Returns:
+        Combined health view with tensions, clusters, and optional entity detail.
+    """
+    from organvm_engine.ontologia.inference_bridge import infer_health
+
+    return infer_health(entity_query=entity)
+
+
+def ontologia_snapshot(compare: bool = False) -> dict[str, Any]:
+    """Create or compare state snapshots.
+
+    Args:
+        compare: If True, compare two most recent snapshots for drift.
+                 If False, create a new snapshot.
+
+    Returns:
+        Snapshot creation result or drift detection result.
+    """
+    from organvm_engine.ontologia.snapshots import create_system_snapshot, detect_drift
+
+    if compare:
+        return detect_drift()
+    return create_system_snapshot()
+
+
+def ontologia_revisions(status: str | None = None, limit: int = 50) -> dict[str, Any]:
+    """Query the revision log.
+
+    Args:
+        status: Filter by revision status (detected, proposed, applied, etc.).
+        limit: Max revisions to return (default 50).
+
+    Returns:
+        {"revisions": [...], "total": int}
+    """
+    from organvm_engine.ontologia.policies import load_revisions
+
+    revisions = load_revisions(status=status, limit=limit)
+    return {"revisions": revisions, "total": len(revisions)}
+
+
 def ontologia_bridge_resolve(
     query: str,
     include_registry: bool = True,

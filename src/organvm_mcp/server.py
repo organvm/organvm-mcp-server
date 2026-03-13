@@ -1417,6 +1417,104 @@ TOOLS = [
             "required": ["query"],
         },
     ),
+    Tool(
+        name="organvm_ontologia_sense",
+        description=(
+            "Run sensors to detect changes in registry, soak, CI, and "
+            "promotion readiness. Returns grouped signals by sensor."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "sensor": {
+                    "type": "string",
+                    "description": (
+                        "Specific sensor to run: registry_sensor, soak_sensor, "
+                        "ci_sensor, promotion_sensor. Runs all if omitted."
+                    ),
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_ontologia_tensions",
+        description=(
+            "Run tension detection — find orphan entities, naming conflicts, "
+            "and overcoupled nodes in the structural registry."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_ontologia_policies",
+        description=(
+            "List or evaluate governance policies. When evaluate=true, checks "
+            "all policies against all entities and returns triggered matches."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "evaluate": {
+                    "type": "boolean",
+                    "description": "Evaluate policies against entities (default false)",
+                    "default": False,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_ontologia_health",
+        description=(
+            "Composite entity health — tensions, clusters, and blast radius. "
+            "Optionally focuses on a specific entity."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "entity": {
+                    "type": "string",
+                    "description": "Optional entity UID or name for detail",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_ontologia_snapshot",
+        description=(
+            "Create or compare state snapshots for drift detection. "
+            "Snapshots capture every entity's properties and metrics."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "compare": {
+                    "type": "boolean",
+                    "description": "Compare two most recent snapshots (default false)",
+                    "default": False,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_ontologia_revisions",
+        description=(
+            "Query the revision log — governance-driven structural change proposals "
+            "with evidence trails and status tracking."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "description": "Filter by status: detected, proposed, applied, etc.",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max revisions (default 50)",
+                    "default": 50,
+                },
+            },
+        },
+    ),
     # Styx Orchestration
     Tool(
         name="organvm_styx_orchestrate_stake",
@@ -1587,6 +1685,12 @@ _DISPATCH = {
     "organvm_ontologia_events": lambda args: ontologia.ontologia_events(**args),
     "organvm_ontologia_status": lambda args: ontologia.ontologia_status(),
     "organvm_ontologia_bridge_resolve": lambda args: ontologia.ontologia_bridge_resolve(**args),
+    "organvm_ontologia_sense": lambda args: ontologia.ontologia_sense(**args),
+    "organvm_ontologia_tensions": lambda args: ontologia.ontologia_tensions(),
+    "organvm_ontologia_policies": lambda args: ontologia.ontologia_policies(**args),
+    "organvm_ontologia_health": lambda args: ontologia.ontologia_health(**args),
+    "organvm_ontologia_snapshot": lambda args: ontologia.ontologia_snapshot(**args),
+    "organvm_ontologia_revisions": lambda args: ontologia.ontologia_revisions(**args),
     # Styx
     "organvm_styx_orchestrate_stake": lambda args: styx.styx_orchestrate_stake(**args),
     "organvm_styx_resolve_audit": lambda args: styx.styx_resolve_audit(**args),
