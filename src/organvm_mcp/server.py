@@ -26,6 +26,7 @@ from organvm_mcp.tools import (
     graph,
     health,
     metrics,
+    ontologia,
     prompting,
     pulse,
     registry,
@@ -1310,6 +1311,112 @@ TOOLS = [
             },
         },
     ),
+    # ── Ontologia tools ──────────────────────────────────────────────
+    Tool(
+        name="organvm_ontologia_resolve",
+        description=(
+            "Resolve an entity in the ontologia structural registry by UID, "
+            "display name, slug, or alias. Returns identity, type, status, "
+            "and match method."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Entity UID, display name, slug, or alias",
+                },
+            },
+            "required": ["query"],
+        },
+    ),
+    Tool(
+        name="organvm_ontologia_list",
+        description=(
+            "List entities in the ontologia structural registry. "
+            "Optionally filter by entity type (organ, repo, module, document)."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "entity_type": {
+                    "type": "string",
+                    "enum": ["organ", "repo", "module", "document"],
+                    "description": "Filter by entity type",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results (default 50)",
+                    "default": 50,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_ontologia_history",
+        description=(
+            "Show name history for an ontologia entity — all display names "
+            "with temporal validity (valid_from/to), primary flag, and slugs."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "entity": {
+                    "type": "string",
+                    "description": "Entity UID or name to look up",
+                },
+            },
+            "required": ["entity"],
+        },
+    ),
+    Tool(
+        name="organvm_ontologia_events",
+        description=(
+            "Show recent ontologia events — entity creation, renames, "
+            "deprecations, and structural mutations."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "description": "Max events (default 20)",
+                    "default": 20,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_ontologia_status",
+        description=(
+            "Ontologia store status — entity counts by type and lifecycle "
+            "status, store path, and last recorded event."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_ontologia_bridge_resolve",
+        description=(
+            "Unified entity resolution — checks ontologia first (UID-based), "
+            "falls back to registry name lookup. Returns source indicator "
+            "(ontologia vs registry) and enriches with registry metadata."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Entity UID, name, slug, or alias",
+                },
+                "include_registry": {
+                    "type": "boolean",
+                    "description": "Include registry fallback (default true)",
+                    "default": True,
+                },
+            },
+            "required": ["query"],
+        },
+    ),
     # Styx Orchestration
     Tool(
         name="organvm_styx_orchestrate_stake",
@@ -1330,7 +1437,7 @@ TOOLS = [
                 },
                 "source_organ": {
                     "type": "string",
-                    "description": "The organ repo creating the stake (default: organvm-iii-ergon).",
+                    "description": "Organ repo creating the stake.",
                     "default": "organvm-iii-ergon",
                 },
             },
@@ -1354,7 +1461,7 @@ TOOLS = [
                 },
                 "auditor": {
                     "type": "string",
-                    "description": "The organ repo performing the audit (default: organvm-vi-koinonia).",
+                    "description": "Organ repo performing the audit.",
                     "default": "organvm-vi-koinonia",
                 },
                 "proof_hash": {
@@ -1473,6 +1580,13 @@ _DISPATCH = {
     # Verification
     "organvm_verify_system": lambda args: verification.verify_system(**args),
     "organvm_verify_contracts": lambda args: verification.verify_contracts(**args),
+    # Ontologia
+    "organvm_ontologia_resolve": lambda args: ontologia.ontologia_resolve(**args),
+    "organvm_ontologia_list": lambda args: ontologia.ontologia_list(**args),
+    "organvm_ontologia_history": lambda args: ontologia.ontologia_history(**args),
+    "organvm_ontologia_events": lambda args: ontologia.ontologia_events(**args),
+    "organvm_ontologia_status": lambda args: ontologia.ontologia_status(),
+    "organvm_ontologia_bridge_resolve": lambda args: ontologia.ontologia_bridge_resolve(**args),
     # Styx
     "organvm_styx_orchestrate_stake": lambda args: styx.styx_orchestrate_stake(**args),
     "organvm_styx_resolve_audit": lambda args: styx.styx_resolve_audit(**args),

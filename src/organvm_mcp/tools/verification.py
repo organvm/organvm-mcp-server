@@ -12,7 +12,6 @@ def verify_system(
 
     Returns contract coverage, temporal ordering, and idempotency status.
     """
-    from organvm_engine.seed.reader import read_seed
     from organvm_engine.verification.idempotency import DispatchLedger
     from organvm_engine.verification.model_check import verify_system as _verify
 
