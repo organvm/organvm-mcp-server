@@ -66,6 +66,8 @@ def find_edges(
         # Extract produces
         if direction in ["produces", "both"]:
             for prod in seed.get("produces", []) or []:
+                if isinstance(prod, str):
+                    prod = {"artifact": prod}
                 edges.append(
                     {
                         "source": current_repo,
@@ -80,6 +82,8 @@ def find_edges(
         # Extract consumes
         if direction in ["consumes", "both"]:
             for cons in seed.get("consumes", []) or []:
+                if isinstance(cons, str):
+                    cons = {"artifact": cons}
                 edges.append(
                     {
                         "source": cons.get("source") or "unknown",

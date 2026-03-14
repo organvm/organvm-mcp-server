@@ -215,6 +215,125 @@ def pulse_scan() -> dict[str, Any]:
         return {"error": str(exc)}
 
 
+def pulse_tensions() -> dict[str, Any]:
+    """Run inference and return current tension indicators."""
+    try:
+        from organvm_engine.pulse.inference_bridge import run_inference
+
+        workspace = _workspace_root()
+        summary = run_inference(workspace)
+        return summary.to_dict()
+    except ImportError:
+        return {"error": "inference_bridge module not yet available"}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def pulse_clusters() -> dict[str, Any]:
+    """Run inference and return detected entity clusters."""
+    try:
+        from organvm_engine.pulse.inference_bridge import run_inference
+
+        workspace = _workspace_root()
+        summary = run_inference(workspace)
+        return {
+            "clusters": summary.clusters,
+            "cluster_count": summary.cluster_count,
+            "inference_score": summary.inference_score,
+        }
+    except ImportError:
+        return {"error": "inference_bridge module not yet available"}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def pulse_advisories(
+    limit: int = 20,
+    unacked_only: bool = False,
+) -> dict[str, Any]:
+    """Read governance advisories from the advisory store."""
+    try:
+        from organvm_engine.pulse.advisories import read_advisories
+
+        advisories = read_advisories(limit=limit, unacked_only=unacked_only)
+        return {
+            "advisories": [a.to_dict() for a in advisories],
+            "total": len(advisories),
+        }
+    except ImportError:
+        return {"error": "advisories module not yet available"}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def pulse_blast_radius(entity: str) -> dict[str, Any]:
+    """Compute blast radius for a specific entity."""
+    try:
+        from organvm_engine.pulse.inference_bridge import blast_radius
+
+        return blast_radius(entity)
+    except ImportError:
+        return {"error": "inference_bridge module not yet available"}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def pulse_edges(entity: str | None = None) -> dict[str, Any]:
+    """Show structural edge counts, relation type breakdown, and cross-organ edges.
+
+    Optionally filter to edges involving a specific entity (by name or UID).
+    """
+    try:
+        from ontologia.entity.identity import EntityType
+        from ontologia.registry.store import open_store
+
+        store = open_store()
+        ei = store.edge_index
+        hierarchy = [e for e in ei.all_hierarchy_edges() if e.is_active()]
+        relations = [e for e in ei.all_relation_edges() if e.is_active()]
+
+        # If filtering by entity, resolve and filter
+        if entity:
+            resolver = store.resolver()
+            result = resolver.resolve(entity)
+            if not result:
+                return {"error": f"Entity not found: {entity}"}
+            uid = result.identity.uid
+            hierarchy = [e for e in hierarchy if e.parent_id == uid or e.child_id == uid]
+            relations = [e for e in relations if e.source_id == uid or e.target_id == uid]
+
+        # Relation type breakdown
+        by_type: dict[str, int] = {}
+        for e in relations:
+            by_type[e.relation_type] = by_type.get(e.relation_type, 0) + 1
+
+        # Cross-organ count
+        child_to_organ: dict[str, str] = {}
+        for e in ei.all_hierarchy_edges():
+            if e.is_active():
+                child_to_organ[e.child_id] = e.parent_id
+
+        cross_organ = 0
+        for e in relations:
+            src_organ = child_to_organ.get(e.source_id, "")
+            tgt_organ = child_to_organ.get(e.target_id, "")
+            if src_organ and tgt_organ and src_organ != tgt_organ:
+                cross_organ += 1
+
+        return {
+            "hierarchy_edges": len(hierarchy),
+            "relation_edges": len(relations),
+            "total_edges": len(hierarchy) + len(relations),
+            "cross_organ_edges": cross_organ,
+            "by_relation_type": by_type,
+            "entity_filter": entity,
+        }
+    except ImportError:
+        return {"error": "ontologia not available"}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
 def pulse_ammoi(
     organ: str | None = None,
     repo: str | None = None,
