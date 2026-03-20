@@ -140,3 +140,78 @@ def governance_check_dictums() -> dict[str, Any]:
     rules = load_governance_rules()
     report = check_all_dictums(registry, rules)
     return report.to_dict()
+
+
+def governance_placement(
+    repo: str | None = None,
+    audit_only: bool = False,
+) -> dict[str, Any]:
+    """Audit repo-to-organ placement affinity."""
+    from organvm_engine.governance.placement import (
+        audit_all_placements,
+        load_organ_definitions,
+        recommend_placement,
+    )
+    from organvm_engine.registry.query import find_repo
+
+    from organvm_mcp.data.loader import load_registry
+
+    registry = load_registry()
+    definitions = load_organ_definitions()
+    if not definitions:
+        return {"error": "organ-definitions.json not found"}
+
+    if repo:
+        result = find_repo(registry, repo)
+        if not result:
+            return {"error": f"Repo '{repo}' not found"}
+        _, repo_data = result
+        rec = recommend_placement(repo_data, definitions)
+        return rec.to_dict()
+
+    audit = audit_all_placements(registry, definitions)
+    out = audit.to_dict()
+    if audit_only:
+        out["questionable"] = out.get("questionable", [])
+        out["misplaced"] = out.get("misplaced", [])
+    return out
+
+
+def governance_excavate(
+    entity_type: str | None = None,
+    severity: str | None = None,
+    families_only: bool = False,
+) -> dict[str, Any]:
+    """Run buried entity excavation across the workspace."""
+    from pathlib import Path
+
+    from organvm_engine.governance.excavation import run_full_excavation
+    from organvm_engine.paths import workspace_root
+
+    from organvm_mcp.data.loader import load_registry
+
+    registry = load_registry()
+    workspace = workspace_root()
+
+    report = run_full_excavation(workspace, registry)
+
+    if families_only:
+        return {
+            "cross_organ_families": report.cross_organ_families,
+            "family_count": len(report.cross_organ_families),
+        }
+
+    findings = report.findings
+    if entity_type:
+        findings = [f for f in findings if f.entity_type == entity_type]
+    if severity:
+        sev_order = {"info": 0, "warning": 1, "critical": 2}
+        min_sev = sev_order.get(severity, 0)
+        findings = [
+            f for f in findings
+            if sev_order.get(f.severity, 0) >= min_sev
+        ]
+
+    out = report.to_dict()
+    out["findings"] = [f.to_dict() for f in findings]
+    return out

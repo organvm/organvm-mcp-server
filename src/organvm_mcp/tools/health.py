@@ -101,6 +101,27 @@ def ci_health() -> dict[str, Any]:
     return report.to_dict()
 
 
+def ci_audit(organ: str = "", repo: str = "") -> dict[str, Any]:
+    """Run Descent Protocol infrastructure audit.
+
+    Checks all 15 GitHub infrastructure mechanisms against
+    promotion-tier requirements for each repo.
+    """
+    from organvm_engine.ci.audit import run_infra_audit
+
+    from organvm_mcp.data.loader import load_registry
+
+    registry = load_registry()
+    report = run_infra_audit(
+        registry=registry,
+        organ_filter=organ or None,
+        repo_filter=repo or None,
+    )
+    result = report.to_dict()
+    result["summary"] = report.summary()
+    return result
+
+
 def deadlines(days: int = 30) -> dict[str, Any]:
     """Get upcoming deadlines from the rolling-todo."""
     from organvm_engine.deadlines.parser import filter_upcoming, parse_deadlines

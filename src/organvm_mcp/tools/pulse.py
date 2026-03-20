@@ -359,3 +359,32 @@ def pulse_ammoi(
         return {"error": "ammoi module not yet available"}
     except Exception as exc:
         return {"error": str(exc)}
+
+
+def pulse_temporal(
+    window: int = 7,
+    limit: int = 50,
+) -> dict[str, Any]:
+    """Compute temporal profile from AMMOI history — velocity, acceleration, and trends."""
+    try:
+        from organvm_engine.pulse.ammoi import _read_history, extract_timeseries
+        from organvm_engine.pulse.temporal import compute_temporal_profile
+
+        history = _read_history(limit=limit)
+        if len(history) < 3:
+            return {
+                "error": "insufficient_history",
+                "message": f"Need >= 3 snapshots, have {len(history)}. Run `organvm pulse scan` to build history.",
+                "snapshot_count": len(history),
+            }
+
+        timeseries = extract_timeseries(history)
+        profile = compute_temporal_profile(timeseries, window=window)
+        result = profile.to_dict()
+        result["snapshot_count"] = len(history)
+        result["window"] = window
+        return result
+    except ImportError:
+        return {"error": "temporal module not yet available"}
+    except Exception as exc:
+        return {"error": str(exc)}
