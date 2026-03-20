@@ -25,6 +25,8 @@ from organvm_mcp.tools import (
     governance,
     graph,
     health,
+    indexer,
+    ledger,
     metrics,
     ontologia,
     prompting,
@@ -35,6 +37,7 @@ from organvm_mcp.tools import (
     sessions,
     sops,
     styx,
+    testament,
     verification,
 )
 
@@ -232,6 +235,29 @@ TOOLS = [
             "and identifies phantom failures from schedule-only workflows."
         ),
         inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_ci_audit",
+        description=(
+            "Run The Descent Protocol infrastructure audit. "
+            "Checks all 15 GitHub infrastructure mechanisms (CI, dependabot, "
+            "CodeQL, CODEOWNERS, templates, release automation, etc.) against "
+            "promotion-tier requirements. Returns per-repo compliance scores "
+            "and identifies non-compliant repos blocking promotion."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organ": {
+                    "type": "string",
+                    "description": "Filter by organ key (e.g., META-ORGANVM)",
+                },
+                "repo": {
+                    "type": "string",
+                    "description": "Filter by repo name",
+                },
+            },
+        },
     ),
     Tool(
         name="organvm_upcoming_deadlines",
@@ -468,6 +494,56 @@ TOOLS = [
             "against the live registry. Returns violations by severity."
         ),
         inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_governance_placement",
+        description=(
+            "Audit repo-to-organ placement affinity — scores how well each repo "
+            "fits its current organ based on organ-definitions.json criteria. "
+            "Optionally check a single repo or filter to flagged repos only."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string",
+                    "description": "Single repo name to check (optional — omit for full audit)",
+                },
+                "audit_only": {
+                    "type": "boolean",
+                    "description": "Only return flagged repos",
+                    "default": False,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_governance_excavate",
+        description=(
+            "Scan the workspace for buried entities — nested sub-packages, "
+            "cross-organ repo families, extractable modules, and misplaced "
+            "governance artifacts. Returns a structured excavation report."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "entity_type": {
+                    "type": "string",
+                    "description": "Filter by type: sub_package, cross_organ_family, extractable_module, misplaced_governance",
+                    "enum": ["sub_package", "cross_organ_family", "extractable_module", "misplaced_governance"],
+                },
+                "severity": {
+                    "type": "string",
+                    "description": "Minimum severity filter",
+                    "enum": ["info", "warning", "critical"],
+                },
+                "families_only": {
+                    "type": "boolean",
+                    "description": "Only return cross-organ family analysis",
+                    "default": False,
+                },
+            },
+        },
     ),
     # ── Session intelligence tools ───────────────────────────────────
     Tool(
@@ -1074,6 +1150,237 @@ TOOLS = [
             },
         },
     ),
+    # ── Testament tools ──────────────────────────────────────────────
+    Tool(
+        name="organvm_testament_status",
+        description=(
+            "Testament system status — what artifacts the system can produce "
+            "and has produced. Shows registered modalities, organ profiles, "
+            "catalog counts."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_testament_catalog",
+        description=(
+            "List all produced testament artifacts — the system's generative "
+            "self-portrait catalog. Filter by organ."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organ": {
+                    "type": "string",
+                    "description": "Optional organ filter (CLI key like I, META)",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_testament_render",
+        description=(
+            "Render testament artifacts from live system data. "
+            "Dry-run by default — set write=true to produce files. "
+            "Generates SVG constellations, mandala, density charts, prose."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organ": {
+                    "type": "string",
+                    "description": "Optional organ filter",
+                },
+                "write": {
+                    "type": "boolean",
+                    "description": "Actually produce files (default: false/dry-run)",
+                    "default": False,
+                },
+            },
+        },
+    ),
+    # ── Ledger tools (Testament Protocol) ─────────────────────────────
+    Tool(
+        name="organvm_ledger_status",
+        description=(
+            "Testament Chain status — event count, chain integrity, "
+            "last sequence number and hash. The chain is the system's "
+            "native blockchain where every state mutation is hash-linked."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_ledger_log",
+        description=(
+            "Query events from the Testament Chain. Filter by event type "
+            "or tier (governance/milestone/operational/infrastructure)."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "event_type": {
+                    "type": "string",
+                    "description": "Filter by event type (e.g. governance.promotion)",
+                },
+                "tier": {
+                    "type": "string",
+                    "enum": ["governance", "milestone", "operational", "infrastructure"],
+                    "description": "Filter by syndication tier",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max events to return (default 20)",
+                    "default": 20,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_ledger_verify",
+        description=(
+            "Full chain integrity verification — walks every event from "
+            "genesis, verifying hashes and chain links. Reports any "
+            "tampering or corruption."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_ledger_recent",
+        description=(
+            "Most recent chain events, optionally filtered by tier."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "description": "Max events (default 10)",
+                    "default": 10,
+                },
+                "tier": {
+                    "type": "string",
+                    "enum": ["governance", "milestone", "operational", "infrastructure"],
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_ledger_digest",
+        description=(
+            "Digest summary of the Testament Chain — counts by type, "
+            "tier, organ, governance highlights, and formatted text "
+            "suitable for social syndication."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    # ── Indexer tools ────────────────────────────────────────────────
+    Tool(
+        name="organvm_index_scan",
+        description=(
+            "Deep structural index — scans repos to absolute bottom, "
+            "identifies atomic components (Python packages, JS modules, "
+            "Go packages, doc collections, resource bundles). "
+            "Returns system-wide census with cohesion types, language "
+            "breakdown, and per-organ statistics. Use to understand "
+            "the full structural anatomy of the codebase."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organ": {
+                    "type": "string",
+                    "description": "Filter to specific organ (e.g. 'ORGAN-I', 'META-ORGANVM')",
+                },
+                "repo": {
+                    "type": "string",
+                    "description": "Filter to specific repo name",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_index_show",
+        description=(
+            "Show the component tree for a single repo — atomic components "
+            "with cohesion types, file/line counts, dominant language, "
+            "and inter-component import edges. Use to understand the "
+            "internal structure and dependency graph within a repo."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string",
+                    "description": "Repository name to show components for",
+                },
+            },
+            "required": ["repo"],
+        },
+    ),
+    Tool(
+        name="organvm_index_bridge",
+        description=(
+            "Register indexed components as ontologia entities — "
+            "creates MODULE entities with permanent UIDs for all atomic "
+            "components. Idempotent: skips already-registered components. "
+            "Creates hierarchy edges from repo→component."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organ": {
+                    "type": "string",
+                    "description": "Filter to specific organ",
+                },
+                "repo": {
+                    "type": "string",
+                    "description": "Filter to specific repo name",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_query_relations",
+        description=(
+            "Multi-scale relation query — returns all relations for an "
+            "entity across three scales: inter-repo (seed graph produces/"
+            "consumes), intra-repo (import edges between components), "
+            "and entity-level (ontologia hierarchy + relation edges). "
+            "Use to understand how any entity connects to the system."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "entity": {
+                    "type": "string",
+                    "description": "Entity name, component path, or UID",
+                },
+            },
+            "required": ["entity"],
+        },
+    ),
+    Tool(
+        name="organvm_entity_memory",
+        description=(
+            "Aggregate all signals about an entity from every data source: "
+            "pulse events, shared memory insights, ontologia events and "
+            "name history, continuity briefing, and metrics trends. "
+            "Use to understand the complete history of any system entity."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "entity": {
+                    "type": "string",
+                    "description": "Entity name, component path, or UID",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max signals per source (default 50)",
+                },
+            },
+            "required": ["entity"],
+        },
+    ),
     # ── Pulse tools ──────────────────────────────────────────────────
     Tool(
         name="organvm_pulse_mood",
@@ -1349,6 +1656,28 @@ TOOLS = [
                 "entity": {
                     "type": "string",
                     "description": "Optional entity name or UID to filter edges for",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_pulse_temporal",
+        description=(
+            "Compute temporal profile from AMMOI history — velocity, acceleration, "
+            "and trend direction for 9 system metrics (density, edges, tensions, "
+            "flow, orphans, etc.). Reveals whether the system is accelerating, "
+            "decelerating, or stable across each dimension."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "window": {
+                    "type": "integer",
+                    "description": "Moving average window size (default 7)",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max history snapshots to read (default 50)",
                 },
             },
         },
@@ -1699,6 +2028,7 @@ _DISPATCH = {
     "organvm_system_health": lambda args: health.system_health(),
     "organvm_omega_status": lambda args: health.omega_status(),
     "organvm_ci_health": lambda args: health.ci_health(),
+    "organvm_ci_audit": lambda args: health.ci_audit(**args),
     "organvm_upcoming_deadlines": lambda args: health.deadlines(**args),
     "organvm_pitch_status": lambda args: health.pitch_status(),
     # Context
@@ -1722,6 +2052,8 @@ _DISPATCH = {
     "organvm_governance_feedback_loops": lambda args: governance.governance_feedback_loops(),
     "organvm_governance_dictums": lambda args: governance.governance_dictums(**args),
     "organvm_governance_check_dictums": lambda args: governance.governance_check_dictums(),
+    "organvm_governance_placement": lambda args: governance.governance_placement(**args),
+    "organvm_governance_excavate": lambda args: governance.governance_excavate(**args),
     # Sessions
     "organvm_session_agents": lambda args: sessions.session_agents(),
     "organvm_session_list": lambda args: sessions.session_list(**args),
@@ -1768,6 +2100,22 @@ _DISPATCH = {
     "organvm_pillar_dna": lambda args: ecosystem.pillar_dna(**args),
     "organvm_ecosystem_staleness": lambda args: ecosystem.ecosystem_staleness(**args),
     "organvm_ecosystem_lifecycle": lambda args: ecosystem.ecosystem_lifecycle(**args),
+    # Testament
+    "organvm_testament_status": lambda args: testament.testament_status(),
+    "organvm_testament_catalog": lambda args: testament.testament_catalog(**args),
+    "organvm_testament_render": lambda args: testament.testament_render(**args),
+    # Ledger (Testament Protocol)
+    "organvm_ledger_status": lambda args: ledger.ledger_status(),
+    "organvm_ledger_log": lambda args: ledger.ledger_log(**args),
+    "organvm_ledger_verify": lambda args: ledger.ledger_verify(),
+    "organvm_ledger_recent": lambda args: ledger.ledger_recent(**args),
+    "organvm_ledger_digest": lambda args: ledger.ledger_digest(),
+    # Indexer
+    "organvm_index_scan": lambda args: indexer.index_scan(**args),
+    "organvm_index_show": lambda args: indexer.index_show(**args),
+    "organvm_index_bridge": lambda args: indexer.index_bridge(**args),
+    "organvm_query_relations": lambda args: indexer.query_relations(**args),
+    "organvm_entity_memory": lambda args: indexer.entity_memory(**args),
     # Pulse
     "organvm_pulse_mood": lambda args: pulse.pulse_mood(),
     "organvm_pulse_density": lambda args: pulse.pulse_density(),
@@ -1785,6 +2133,7 @@ _DISPATCH = {
     "organvm_pulse_advisories": lambda args: pulse.pulse_advisories(**args),
     "organvm_pulse_blast_radius": lambda args: pulse.pulse_blast_radius(**args),
     "organvm_pulse_edges": lambda args: pulse.pulse_edges(**args),
+    "organvm_pulse_temporal": lambda args: pulse.pulse_temporal(**args),
     # Audit
     "organvm_infrastructure_audit": lambda args: audit.infrastructure_audit(**args),
     # Verification
