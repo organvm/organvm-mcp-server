@@ -183,7 +183,6 @@ def governance_excavate(
     families_only: bool = False,
 ) -> dict[str, Any]:
     """Run buried entity excavation across the workspace."""
-    from pathlib import Path
 
     from organvm_engine.governance.excavation import run_full_excavation
     from organvm_engine.paths import workspace_root

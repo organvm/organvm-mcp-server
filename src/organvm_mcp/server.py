@@ -530,8 +530,16 @@ TOOLS = [
             "properties": {
                 "entity_type": {
                     "type": "string",
-                    "description": "Filter by type: sub_package, cross_organ_family, extractable_module, misplaced_governance",
-                    "enum": ["sub_package", "cross_organ_family", "extractable_module", "misplaced_governance"],
+                    "description": (
+                        "Filter by type: sub_package, cross_organ_family,"
+                        " extractable_module, misplaced_governance"
+                    ),
+                    "enum": [
+                        "sub_package",
+                        "cross_organ_family",
+                        "extractable_module",
+                        "misplaced_governance",
+                    ],
                 },
                 "severity": {
                     "type": "string",

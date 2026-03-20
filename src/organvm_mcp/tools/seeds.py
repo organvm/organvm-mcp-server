@@ -65,32 +65,30 @@ def find_edges(
 
         # Extract produces
         if direction in ["produces", "both"]:
-            for prod in seed.get("produces", []) or []:
-                if isinstance(prod, str):
-                    prod = {"artifact": prod}
+            for prod_entry in seed.get("produces", []) or []:
+                prod_dict = {"artifact": prod_entry} if isinstance(prod_entry, str) else prod_entry
                 edges.append(
                     {
                         "source": current_repo,
                         "source_organ": current_organ,
-                        "target": prod.get("target") or "unknown",
-                        "artifact": prod.get("artifact") or "unknown",
-                        "event_type": prod.get("event") or "",
+                        "target": prod_dict.get("target") or "unknown",
+                        "artifact": prod_dict.get("artifact") or "unknown",
+                        "event_type": prod_dict.get("event") or "",
                         "direction": "produces",
                     },
                 )
 
         # Extract consumes
         if direction in ["consumes", "both"]:
-            for cons in seed.get("consumes", []) or []:
-                if isinstance(cons, str):
-                    cons = {"artifact": cons}
+            for cons_entry in seed.get("consumes", []) or []:
+                cons_dict = {"artifact": cons_entry} if isinstance(cons_entry, str) else cons_entry
                 edges.append(
                     {
-                        "source": cons.get("source") or "unknown",
+                        "source": cons_dict.get("source") or "unknown",
                         "target": current_repo,
                         "target_organ": current_organ,
-                        "artifact": cons.get("artifact") or "unknown",
-                        "event_type": cons.get("event") or "",
+                        "artifact": cons_dict.get("artifact") or "unknown",
+                        "event_type": cons_dict.get("event") or "",
                         "direction": "consumes",
                     },
                 )

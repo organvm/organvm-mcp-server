@@ -18,7 +18,11 @@ def ledger_status() -> dict[str, Any]:
     from organvm_engine.ledger.chain import verify_chain
 
     if not _CHAIN_PATH.is_file():
-        return {"exists": False, "event_count": 0, "message": "No chain found. Run `organvm ledger genesis`."}
+        return {
+            "exists": False,
+            "event_count": 0,
+            "message": "No chain found. Run `organvm ledger genesis`.",
+        }
 
     result = verify_chain(_CHAIN_PATH)
     return {
