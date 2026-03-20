@@ -5,14 +5,61 @@ Exposes the pulse nervous-system layer to any Claude Code session.
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+logger = logging.getLogger(__name__)
+
 
 def _workspace_root() -> Path:
     return Path(os.environ.get("ORGANVM_WORKSPACE_DIR", str(Path.home() / "Workspace")))
+
+
+def _compute_velocity_factors() -> tuple[float, float, float]:
+    """Compute health_velocity, stale_velocity, and session_frequency from live data.
+
+    Returns:
+        (health_velocity, stale_velocity, session_frequency) — all floats.
+        Falls back to 0.0 for any component that cannot be computed.
+    """
+    health_velocity = 0.0
+    stale_velocity = 0.0
+    session_frequency = 0.0
+
+    # --- Health & stale velocity from AMMOI history ---
+    try:
+        from organvm_engine.pulse.ammoi import _read_history, extract_timeseries
+        from organvm_engine.pulse.temporal import compute_velocity
+
+        history = _read_history(limit=50)
+        if len(history) >= 2:
+            timeseries = extract_timeseries(history)
+            density_series = timeseries.get("system_density", [])
+            if len(density_series) >= 2:
+                # system_density trends in [0..1]; scale to match health_pct's
+                # [0..100] range so velocity thresholds in affective.py apply.
+                health_velocity = compute_velocity(density_series) * 100.0
+                # Staleness moves inversely to density.
+                stale_velocity = -health_velocity
+    except Exception:
+        logger.debug("Could not compute velocity from AMMOI history", exc_info=True)
+
+    # --- Session frequency from event bus ---
+    try:
+        from organvm_engine.pulse.events import event_counts
+
+        counts = event_counts()
+        session_count = counts.get("session.started", 0) + counts.get("session.ended", 0)
+        total_events = sum(counts.values()) if counts else 0
+        # Normalise: session events as a fraction of total activity.
+        session_frequency = session_count / total_events if total_events > 0 else 0.0
+    except Exception:
+        logger.debug("Could not compute session frequency from events", exc_info=True)
+
+    return health_velocity, stale_velocity, session_frequency
 
 
 def pulse_mood() -> dict[str, Any]:
@@ -35,15 +82,17 @@ def pulse_mood() -> dict[str, Any]:
         sum(g.rate for g in gate_stats) / len(gate_stats) if gate_stats else 0.0
     )
 
+    health_velocity, stale_velocity, session_frequency = _compute_velocity_factors()
+
     factors = MoodFactors(
         health_pct=organism.sys_pct,
-        health_velocity=0.0,
+        health_velocity=health_velocity,
         stale_ratio=total_stale / total,
-        stale_velocity=0.0,
+        stale_velocity=stale_velocity,
         density_score=dp.interconnection_score,
         gate_pass_rate=avg_gate_rate,
         promo_ready_ratio=organism.total_promo_ready / total,
-        session_frequency=0.0,
+        session_frequency=session_frequency,
     )
 
     mood_result = compute_mood(factors)
@@ -116,7 +165,12 @@ def pulse_emit(
         bundle = resolve_subscriptions(workspace)
         notified = propagate(event, bundle)
     except Exception:
-        pass
+        logger.warning(
+            "Failed to propagate event %s from %s",
+            event_type,
+            source,
+            exc_info=True,
+        )
 
     return {
         "emitted": asdict(event),
@@ -284,7 +338,6 @@ def pulse_edges(entity: str | None = None) -> dict[str, Any]:
     Optionally filter to edges involving a specific entity (by name or UID).
     """
     try:
-        from ontologia.entity.identity import EntityType
         from ontologia.registry.store import open_store
 
         store = open_store()
@@ -299,8 +352,8 @@ def pulse_edges(entity: str | None = None) -> dict[str, Any]:
             if not result:
                 return {"error": f"Entity not found: {entity}"}
             uid = result.identity.uid
-            hierarchy = [e for e in hierarchy if e.parent_id == uid or e.child_id == uid]
-            relations = [e for e in relations if e.source_id == uid or e.target_id == uid]
+            hierarchy = [e for e in hierarchy if uid in (e.parent_id, e.child_id)]
+            relations = [e for e in relations if uid in (e.source_id, e.target_id)]
 
         # Relation type breakdown
         by_type: dict[str, int] = {}
@@ -374,7 +427,10 @@ def pulse_temporal(
         if len(history) < 3:
             return {
                 "error": "insufficient_history",
-                "message": f"Need >= 3 snapshots, have {len(history)}. Run `organvm pulse scan` to build history.",
+                "message": (
+                    f"Need >= 3 snapshots, have {len(history)}."
+                    " Run `organvm pulse scan` to build history."
+                ),
                 "snapshot_count": len(history),
             }
 
