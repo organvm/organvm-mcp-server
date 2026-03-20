@@ -24,6 +24,7 @@ from organvm_mcp.tools import (
     distill,
     ecosystem,
     governance,
+    network,
     graph,
     health,
     indexer,
@@ -1159,6 +1160,104 @@ TOOLS = [
             },
         },
     ),
+    # ── Network testament tools ─────────────────────────────────────
+    Tool(
+        name="organvm_network_map",
+        description=(
+            "Show external mirror connections for a repo or all repos. "
+            "Three lenses: technical (dependencies), parallel (similar projects), "
+            "kinship (philosophical alignment). The Mirror Protocol."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string",
+                    "description": "Optional: show map for one repo only",
+                },
+                "organ": {
+                    "type": "string",
+                    "description": "Optional: filter by organ",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_network_status",
+        description=(
+            "Network health summary — density, mirror coverage per lens, "
+            "engagement velocity, convergence points (projects mirrored by multiple repos)."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_network_suggest",
+        description=(
+            "Actionable engagement suggestions based on network state — "
+            "convergence targets, blind spots, lens gaps, unused engagement forms."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string",
+                    "description": "Optional: suggestions for one repo",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_network_log",
+        description=(
+            "Record an engagement action to the network ledger. "
+            "Lens: technical|parallel|kinship. "
+            "Action: presence|contribution|dialogue|invitation."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organvm_repo": {
+                    "type": "string",
+                    "description": "ORGANVM repo name",
+                },
+                "external_project": {
+                    "type": "string",
+                    "description": "External project identifier (e.g. 'astral-sh/ruff')",
+                },
+                "lens": {
+                    "type": "string",
+                    "description": "Mirror lens: technical, parallel, or kinship",
+                    "enum": ["technical", "parallel", "kinship"],
+                },
+                "action_type": {
+                    "type": "string",
+                    "description": "Engagement form",
+                    "enum": ["presence", "contribution", "dialogue", "invitation"],
+                },
+                "detail": {
+                    "type": "string",
+                    "description": "Description of the action taken",
+                },
+                "url": {
+                    "type": "string",
+                    "description": "Optional: link to the action (PR, issue, post)",
+                },
+                "outcome": {
+                    "type": "string",
+                    "description": "Optional: response or result",
+                },
+            },
+            "required": ["organvm_repo", "external_project", "lens", "action_type", "detail"],
+        },
+    ),
+    Tool(
+        name="organvm_network_convergences",
+        description=(
+            "External projects mirrored by multiple ORGANVM repos — "
+            "high-value engagement targets where the system has many connection points."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
     # ── Testament tools ──────────────────────────────────────────────
     Tool(
         name="organvm_testament_status",
@@ -2157,6 +2256,12 @@ _DISPATCH = {
     "organvm_pillar_dna": lambda args: ecosystem.pillar_dna(**args),
     "organvm_ecosystem_staleness": lambda args: ecosystem.ecosystem_staleness(**args),
     "organvm_ecosystem_lifecycle": lambda args: ecosystem.ecosystem_lifecycle(**args),
+    # Network testament
+    "organvm_network_map": lambda args: network.network_map(**args),
+    "organvm_network_status": lambda args: network.network_status(),
+    "organvm_network_suggest": lambda args: network.network_suggest(**args),
+    "organvm_network_log": lambda args: network.network_log(**args),
+    "organvm_network_convergences": lambda args: network.network_convergences(),
     # Testament
     "organvm_testament_status": lambda args: testament.testament_status(),
     "organvm_testament_catalog": lambda args: testament.testament_catalog(**args),
