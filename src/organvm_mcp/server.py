@@ -18,6 +18,7 @@ from mcp.types import TextContent, Tool
 from organvm_mcp.tools import (
     atoms,
     audit,
+    content,
     context,
     coordination,
     distill,
@@ -2004,6 +2005,54 @@ TOOLS = [
             "required": ["stake_id", "outcome", "proof_hash"],
         },
     ),
+    # ── Content pipeline tools ─────────────────────────────────────
+    Tool(
+        name="organvm_content_list",
+        description=(
+            "List all content pipeline posts with status and distribution info. "
+            "Optionally filter by status (draft, published, archived) or tag."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "description": "Filter by post status (draft, published, archived)",
+                },
+                "tag": {
+                    "type": "string",
+                    "description": "Filter by tag",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_content_status",
+        description=(
+            "Weekly content cadence health check — streak, last post date, "
+            "posts this week, and status breakdown (draft/published/archived)."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_content_signals",
+        description=(
+            "Run signal detection on session messages to find potential "
+            "content moments — voice shifts, standalone power sentences, "
+            "emotional resonance, and architectural connections."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "messages": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of human messages from a session to scan for signals",
+                },
+            },
+            "required": ["messages"],
+        },
+    ),
 ]
 
 
@@ -2155,6 +2204,10 @@ _DISPATCH = {
     # Styx
     "organvm_styx_orchestrate_stake": lambda args: styx.styx_orchestrate_stake(**args),
     "organvm_styx_resolve_audit": lambda args: styx.styx_resolve_audit(**args),
+    # Content
+    "organvm_content_list": lambda args: content.content_list(**args),
+    "organvm_content_status": lambda args: content.content_status(),
+    "organvm_content_signals": lambda args: content.content_signals(**args),
 }
 
 
