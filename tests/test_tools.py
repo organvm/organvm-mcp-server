@@ -510,3 +510,119 @@ class TestContextTools:
         res = context.get_context_markdown(repo="repo-a")
         assert "## System Context" in res
         assert "ORGAN-I" in res
+
+
+# ── Network tool tests ────────────────────────────────────────────────
+
+class TestNetworkTools:
+    """Tests for network testament MCP tool handlers."""
+
+    @patch("organvm_mcp.tools.network._load_maps")
+    def test_network_map_all(self, mock_maps):
+        from organvm_engine.network.schema import MirrorEntry, NetworkMap
+        from organvm_mcp.tools.network import network_map
+
+        mock_maps.return_value = [
+            NetworkMap(
+                schema_version="1.0", repo="test-repo", organ="META",
+                technical=[MirrorEntry(
+                    project="astral-sh/ruff", platform="github", relevance="linter",
+                )],
+            ),
+        ]
+        result = network_map()
+        assert result["maps_count"] == 1
+        assert result["total_mirrors"] == 1
+        assert result["repos"][0]["repo"] == "test-repo"
+
+    @patch("organvm_mcp.tools.network._load_maps")
+    def test_network_map_single_repo(self, mock_maps):
+        from organvm_engine.network.schema import MirrorEntry, NetworkMap
+        from organvm_mcp.tools.network import network_map
+
+        nmap = NetworkMap(
+            schema_version="1.0", repo="target", organ="META",
+            technical=[MirrorEntry(
+                project="x/y", platform="github", relevance="dep",
+            )],
+        )
+        mock_maps.return_value = [nmap]
+        result = network_map(repo="target")
+        assert result["repo"] == "target"
+        assert "mirrors" in result
+
+    @patch("organvm_mcp.tools.network._load_maps")
+    def test_network_map_not_found(self, mock_maps):
+        from organvm_mcp.tools.network import network_map
+
+        mock_maps.return_value = []
+        result = network_map(repo="nonexistent")
+        assert "error" in result
+
+    @patch("organvm_mcp.tools.network._load_maps")
+    @patch("organvm_mcp.tools.network._count_active")
+    def test_network_status(self, mock_active, mock_maps):
+        from organvm_engine.network.schema import MirrorEntry, NetworkMap
+        from organvm_mcp.tools.network import network_status
+
+        mock_active.return_value = 10
+        mock_maps.return_value = [
+            NetworkMap(
+                schema_version="1.0", repo="a", organ="X",
+                technical=[MirrorEntry(
+                    project="x/y", platform="github", relevance="dep",
+                )],
+            ),
+        ]
+        result = network_status()
+        assert "density" in result
+        assert "coverage" in result
+        assert result["maps_count"] == 1
+
+    @patch("organvm_mcp.tools.network._load_maps")
+    def test_network_suggest_empty(self, mock_maps):
+        from organvm_mcp.tools.network import network_suggest
+
+        mock_maps.return_value = []
+        result = network_suggest()
+        assert "suggestions" in result
+
+    def test_network_log(self, tmp_path):
+        from organvm_mcp.tools.network import network_log
+
+        with patch(
+            "organvm_engine.network.ledger.DEFAULT_LEDGER_PATH",
+            tmp_path / "test-ledger.jsonl",
+        ):
+            result = network_log(
+                organvm_repo="test-repo",
+                external_project="x/y",
+                lens="technical",
+                action_type="contribution",
+                detail="Filed issue #1",
+            )
+            assert result["status"] == "logged"
+            assert result["repo"] == "test-repo"
+
+    @patch("organvm_mcp.tools.network._load_maps")
+    def test_network_convergences(self, mock_maps):
+        from organvm_engine.network.schema import MirrorEntry, NetworkMap
+        from organvm_mcp.tools.network import network_convergences
+
+        mock_maps.return_value = [
+            NetworkMap(
+                schema_version="1.0", repo="a", organ="X",
+                technical=[MirrorEntry(
+                    project="shared/p", platform="github", relevance="dep",
+                )],
+            ),
+            NetworkMap(
+                schema_version="1.0", repo="b", organ="X",
+                technical=[MirrorEntry(
+                    project="shared/p", platform="github", relevance="dep",
+                )],
+            ),
+        ]
+        result = network_convergences()
+        assert result["total"] == 1
+        assert result["convergences"][0]["project"] == "shared/p"

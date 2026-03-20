@@ -9,6 +9,21 @@ from __future__ import annotations
 from typing import Any
 
 
+def _count_active() -> int:
+    """Count active repos from registry."""
+    try:
+        from organvm_engine.registry.loader import load_registry
+        from organvm_engine.registry.query import list_repos
+
+        registry = load_registry()
+        return sum(
+            1 for r in list_repos(registry)
+            if r.get("status") not in ("ARCHIVED", "DEPRECATED")
+        )
+    except Exception:
+        return 76  # fallback
+
+
 def _load_maps() -> list:
     """Load all network maps from workspace."""
     from organvm_engine.network.mapper import discover_network_maps
@@ -59,7 +74,8 @@ def network_status() -> dict[str, Any]:
 
     maps = _load_maps()
     summary = ledger_summary()
-    density = network_density(maps, 76)  # approximate active repos
+    active = _count_active()
+    density = network_density(maps, active)
     coverage = mirror_coverage(maps)
     convergences = convergence_points(maps)
 
