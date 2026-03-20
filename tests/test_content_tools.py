@@ -58,11 +58,11 @@ class TestContentList:
     def test_list_all(self, sample_posts):
         with (
             patch(
-                "organvm_mcp.tools.content.discover_posts",
+                "organvm_engine.content.reader.discover_posts",
                 return_value=sample_posts,
             ),
             patch(
-                "organvm_mcp.tools.content.filter_posts",
+                "organvm_engine.content.reader.filter_posts",
                 return_value=sample_posts,
             ),
         ):
@@ -76,11 +76,11 @@ class TestContentList:
         published = [p for p in sample_posts if p.status == "published"]
         with (
             patch(
-                "organvm_mcp.tools.content.discover_posts",
+                "organvm_engine.content.reader.discover_posts",
                 return_value=sample_posts,
             ),
             patch(
-                "organvm_mcp.tools.content.filter_posts",
+                "organvm_engine.content.reader.filter_posts",
                 return_value=published,
             ),
         ):
@@ -93,11 +93,11 @@ class TestContentList:
         ethics = [p for p in sample_posts if "ethics" in p.tags]
         with (
             patch(
-                "organvm_mcp.tools.content.discover_posts",
+                "organvm_engine.content.reader.discover_posts",
                 return_value=sample_posts,
             ),
             patch(
-                "organvm_mcp.tools.content.filter_posts",
+                "organvm_engine.content.reader.filter_posts",
                 return_value=ethics,
             ),
         ):
@@ -108,11 +108,11 @@ class TestContentList:
     def test_list_empty(self):
         with (
             patch(
-                "organvm_mcp.tools.content.discover_posts",
+                "organvm_engine.content.reader.discover_posts",
                 return_value=[],
             ),
             patch(
-                "organvm_mcp.tools.content.filter_posts",
+                "organvm_engine.content.reader.filter_posts",
                 return_value=[],
             ),
         ):
@@ -123,11 +123,11 @@ class TestContentList:
     def test_list_includes_distribution(self, sample_posts):
         with (
             patch(
-                "organvm_mcp.tools.content.discover_posts",
+                "organvm_engine.content.reader.discover_posts",
                 return_value=sample_posts,
             ),
             patch(
-                "organvm_mcp.tools.content.filter_posts",
+                "organvm_engine.content.reader.filter_posts",
                 return_value=sample_posts,
             ),
         ):
@@ -153,11 +153,11 @@ class TestContentStatus:
         )
         with (
             patch(
-                "organvm_mcp.tools.content.discover_posts",
+                "organvm_engine.content.reader.discover_posts",
                 return_value=sample_posts,
             ),
             patch(
-                "organvm_mcp.tools.content.check_cadence",
+                "organvm_engine.content.cadence.check_cadence",
                 return_value=report,
             ),
         ):
@@ -174,11 +174,11 @@ class TestContentStatus:
 
         with (
             patch(
-                "organvm_mcp.tools.content.discover_posts",
+                "organvm_engine.content.reader.discover_posts",
                 return_value=[],
             ),
             patch(
-                "organvm_mcp.tools.content.check_cadence",
+                "organvm_engine.content.cadence.check_cadence",
                 return_value=CadenceReport(),
             ),
         ):
@@ -198,7 +198,6 @@ class TestContentSignals:
         result = content_signals(messages)
         assert result["message_count"] == 3
         assert result["signal_count"] > 0
-        # Should detect emotional_resonance and architectural_connection
         types = {s["signal_type"] for s in result["signals"]}
         assert "emotional_resonance" in types
         assert "architectural_connection" in types
