@@ -40,6 +40,7 @@ from organvm_mcp.tools import (
     sops,
     styx,
     testament,
+    trivium,
     verification,
 )
 
@@ -1258,6 +1259,63 @@ TOOLS = [
         ),
         inputSchema={"type": "object", "properties": {}},
     ),
+    # ── Trivium tools (Dialectica Universalis) ─────────────────────
+    Tool(
+        name="organvm_trivium_dialects",
+        description=(
+            "List all eight dialects of universal logic — one per organ. "
+            "Each dialect has a classical liberal arts parallel, formal basis, "
+            "and translation role. SPEC-018 Dialectica Universalis."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="organvm_trivium_matrix",
+        description=(
+            "Show the 28-pair translation evidence matrix. Each organ pair "
+            "has a tier (formal/structural/analogical/emergent), preservation "
+            "degree, and empirical correspondence count from the live registry."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organ": {
+                    "type": "string",
+                    "description": "Optional: filter to pairs involving this organ (e.g., 'I', 'META')",
+                },
+            },
+        },
+    ),
+    Tool(
+        name="organvm_trivium_scan",
+        description=(
+            "Scan structural correspondences between two organs. "
+            "Detects naming, structural, functional, semantic, maturity, "
+            "and formation parallels from the live registry."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "organ_a": {
+                    "type": "string",
+                    "description": "First organ key (e.g., 'I', 'III', 'META')",
+                },
+                "organ_b": {
+                    "type": "string",
+                    "description": "Second organ key",
+                },
+            },
+            "required": ["organ_a", "organ_b"],
+        },
+    ),
+    Tool(
+        name="organvm_trivium_status",
+        description=(
+            "Trivium subsystem health — dialect count, tier distribution, "
+            "the thesis statement. SPEC-018 Dialectica Universalis."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
     # ── Testament tools ──────────────────────────────────────────────
     Tool(
         name="organvm_testament_status",
@@ -2262,6 +2320,11 @@ _DISPATCH = {
     "organvm_network_suggest": lambda args: network.network_suggest(**args),
     "organvm_network_log": lambda args: network.network_log(**args),
     "organvm_network_convergences": lambda args: network.network_convergences(),
+    # Trivium (Dialectica Universalis)
+    "organvm_trivium_dialects": lambda args: trivium.trivium_dialects(),
+    "organvm_trivium_matrix": lambda args: trivium.trivium_matrix(**args),
+    "organvm_trivium_scan": lambda args: trivium.trivium_scan(**args),
+    "organvm_trivium_status": lambda args: trivium.trivium_status(),
     # Testament
     "organvm_testament_status": lambda args: testament.testament_status(),
     "organvm_testament_catalog": lambda args: testament.testament_catalog(**args),
