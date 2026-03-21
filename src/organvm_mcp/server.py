@@ -24,12 +24,13 @@ from organvm_mcp.tools import (
     distill,
     ecosystem,
     governance,
-    network,
     graph,
     health,
     indexer,
+    irf,
     ledger,
     metrics,
+    network,
     ontologia,
     prompting,
     pulse,
@@ -2218,6 +2219,42 @@ TOOLS = [
             "required": ["messages"],
         },
     ),
+    # IRF tools
+    Tool(
+        name="organvm_irf_query",
+        description=(
+            "Query the Index Rerum Faciendarum — ORGANVM's universal work registry. "
+            "Filter by item_id, priority (P0-P3), domain (SYS/SGO/OBJ/...), "
+            "or status (open/completed/blocked). "
+            "Returns matching items and summary statistics."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "item_id": {
+                    "type": "string",
+                    "description": "Specific IRF item ID (e.g. IRF-SYS-001)",
+                },
+                "priority": {
+                    "type": "string",
+                    "description": "Filter by priority: P0, P1, P2, P3",
+                },
+                "domain": {
+                    "type": "string",
+                    "description": "Filter by domain: SYS, SGO, OBJ, SKL, MON, etc.",
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Filter by status: open, completed, blocked",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results (default 50)",
+                    "default": 50,
+                },
+            },
+        },
+    ),
 ]
 
 
@@ -2384,6 +2421,8 @@ _DISPATCH = {
     "organvm_content_list": lambda args: content.content_list(**args),
     "organvm_content_status": lambda args: content.content_status(),
     "organvm_content_signals": lambda args: content.content_signals(**args),
+    # IRF
+    "organvm_irf_query": lambda args: irf.irf_query(**args),
 }
 
 
