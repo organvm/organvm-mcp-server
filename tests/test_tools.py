@@ -455,26 +455,49 @@ class TestHealthTools:
 
 
 class TestContextTools:
+    @patch("organvm_mcp.data.loader.load_conversation_corpus_surfaces")
     @patch("organvm_mcp.data.loader.load_registry")
     @patch("organvm_mcp.data.loader.load_all_seeds")
-    def test_get_context(self, mock_seeds, mock_reg, mock_registry_data):
+    def test_get_context(self, mock_seeds, mock_reg, mock_surfaces, mock_registry_data):
         mock_reg.return_value = mock_registry_data
         mock_seeds.return_value = []
+        mock_surfaces.return_value = {
+            "surface_count": 1,
+            "valid_count": 1,
+            "partial_count": 0,
+            "invalid_count": 0,
+            "surfaces": [
+                {
+                    "repo": "conversation-corpus-engine",
+                    "organization": "organvm-i-theoria",
+                    "repo_root": "/tmp/cce",
+                    "surface_dir": "/tmp/cce/reports/surfaces",
+                    "state": "valid",
+                    "files": {"bundle": "/tmp/cce/reports/surfaces/surface-bundle.json"},
+                    "summary": {"provider_count": 1},
+                    "validation": {},
+                },
+            ],
+        }
         res = context.get_context(repo="repo-a")
         assert res["repo"]["name"] == "repo-a"
         assert res["organ"]["key"] == "ORGAN-I"
+        assert res["conversation_corpus"]["surface_count"] == 1
 
+    @patch("organvm_mcp.data.loader.load_conversation_corpus_surfaces")
     @patch("organvm_mcp.data.loader.load_registry")
     @patch("organvm_mcp.data.loader.load_all_seeds")
-    def test_get_context_not_found(self, mock_seeds, mock_reg, mock_registry_data):
+    def test_get_context_not_found(self, mock_seeds, mock_reg, mock_surfaces, mock_registry_data):
         mock_reg.return_value = mock_registry_data
         mock_seeds.return_value = []
+        mock_surfaces.return_value = {"surface_count": 0, "surfaces": []}
         res = context.get_context(repo="nonexistent")
         assert "error" in res
 
+    @patch("organvm_mcp.data.loader.load_conversation_corpus_surfaces")
     @patch("organvm_mcp.data.loader.load_registry")
     @patch("organvm_mcp.data.loader.load_all_seeds")
-    def test_get_context_with_seeds(self, mock_seeds, mock_reg, mock_registry_data):
+    def test_get_context_with_seeds(self, mock_seeds, mock_reg, mock_surfaces, mock_registry_data):
         mock_reg.return_value = mock_registry_data
         mock_seeds.return_value = [
             {
@@ -483,33 +506,104 @@ class TestContextTools:
                 "consumes": [],
             },
         ]
+        mock_surfaces.return_value = {"surface_count": 0, "surfaces": []}
         res = context.get_context(repo="repo-a")
         assert len(res["edges"]["produces"]) == 1
 
+    @patch("organvm_mcp.data.loader.load_conversation_corpus_surfaces")
     @patch("organvm_mcp.data.loader.load_registry")
     @patch("organvm_mcp.data.loader.load_all_seeds")
-    def test_get_context_includes_siblings(self, mock_seeds, mock_reg, mock_registry_data):
+    def test_get_context_includes_siblings(
+        self,
+        mock_seeds,
+        mock_reg,
+        mock_surfaces,
+        mock_registry_data,
+    ):
         mock_reg.return_value = mock_registry_data
         mock_seeds.return_value = []
+        mock_surfaces.return_value = {"surface_count": 0, "surfaces": []}
         res = context.get_context(repo="repo-a")
         assert "repo-b" in res["siblings"]
 
+    @patch("organvm_mcp.data.loader.load_conversation_corpus_surfaces")
     @patch("organvm_mcp.data.loader.load_registry")
     @patch("organvm_mcp.data.loader.load_all_seeds")
-    def test_get_context_personal_repo(self, mock_seeds, mock_reg, mock_registry_data):
+    def test_get_context_personal_repo(
+        self,
+        mock_seeds,
+        mock_reg,
+        mock_surfaces,
+        mock_registry_data,
+    ):
         mock_reg.return_value = mock_registry_data
         mock_seeds.return_value = []
+        mock_surfaces.return_value = {"surface_count": 0, "surfaces": []}
         res = context.get_context(repo="my-site", org="4444J99")
         assert res["repo"]["tier"] == "personal"
 
+    @patch("organvm_mcp.data.loader.load_conversation_corpus_surfaces")
     @patch("organvm_mcp.data.loader.load_registry")
     @patch("organvm_mcp.data.loader.load_all_seeds")
-    def test_get_context_markdown(self, mock_seeds, mock_reg, mock_registry_data):
+    def test_get_context_markdown(self, mock_seeds, mock_reg, mock_surfaces, mock_registry_data):
         mock_reg.return_value = mock_registry_data
         mock_seeds.return_value = []
+        mock_surfaces.return_value = {
+            "surface_count": 1,
+            "valid_count": 1,
+            "partial_count": 0,
+            "invalid_count": 0,
+            "surfaces": [
+                {
+                    "repo": "conversation-corpus-engine",
+                    "organization": "organvm-i-theoria",
+                    "repo_root": "/tmp/cce",
+                    "surface_dir": "/tmp/cce/reports/surfaces",
+                    "state": "valid",
+                    "files": {"bundle": "/tmp/cce/reports/surfaces/surface-bundle.json"},
+                    "summary": {"provider_count": 1},
+                    "validation": {},
+                },
+            ],
+        }
         res = context.get_context_markdown(repo="repo-a")
         assert "## System Context" in res
         assert "ORGAN-I" in res
+        assert "Conversation Corpus" in res
+
+    @patch("organvm_mcp.data.loader.load_conversation_corpus_surfaces")
+    def test_conversation_corpus_surfaces(self, mock_surfaces):
+        mock_surfaces.return_value = {
+            "surface_count": 2,
+            "valid_count": 1,
+            "partial_count": 1,
+            "invalid_count": 0,
+            "surfaces": [
+                {
+                    "repo": "conversation-corpus-engine",
+                    "organization": "organvm-i-theoria",
+                    "repo_root": "/tmp/cce",
+                    "surface_dir": "/tmp/cce/reports/surfaces",
+                    "state": "valid",
+                    "files": {"bundle": "/tmp/cce/reports/surfaces/surface-bundle.json"},
+                    "summary": {"provider_count": 2},
+                    "validation": {},
+                },
+                {
+                    "repo": "other-repo",
+                    "organization": "meta-organvm",
+                    "repo_root": "/tmp/other",
+                    "surface_dir": "/tmp/other/reports/surfaces",
+                    "state": "partial",
+                    "files": {"bundle": None},
+                    "summary": {"provider_count": 0},
+                    "validation": {},
+                },
+            ],
+        }
+        res = context.conversation_corpus_surfaces(state="valid")
+        assert res["surface_count"] == 1
+        assert res["surfaces"][0]["repo"] == "conversation-corpus-engine"
 
 
 # ── Network tool tests ────────────────────────────────────────────────
@@ -520,6 +614,7 @@ class TestNetworkTools:
     @patch("organvm_mcp.tools.network._load_maps")
     def test_network_map_all(self, mock_maps):
         from organvm_engine.network.schema import MirrorEntry, NetworkMap
+
         from organvm_mcp.tools.network import network_map
 
         mock_maps.return_value = [
@@ -538,6 +633,7 @@ class TestNetworkTools:
     @patch("organvm_mcp.tools.network._load_maps")
     def test_network_map_single_repo(self, mock_maps):
         from organvm_engine.network.schema import MirrorEntry, NetworkMap
+
         from organvm_mcp.tools.network import network_map
 
         nmap = NetworkMap(
@@ -563,6 +659,7 @@ class TestNetworkTools:
     @patch("organvm_mcp.tools.network._count_active")
     def test_network_status(self, mock_active, mock_maps):
         from organvm_engine.network.schema import MirrorEntry, NetworkMap
+
         from organvm_mcp.tools.network import network_status
 
         mock_active.return_value = 10
@@ -607,6 +704,7 @@ class TestNetworkTools:
     @patch("organvm_mcp.tools.network._load_maps")
     def test_network_convergences(self, mock_maps):
         from organvm_engine.network.schema import MirrorEntry, NetworkMap
+
         from organvm_mcp.tools.network import network_convergences
 
         mock_maps.return_value = [

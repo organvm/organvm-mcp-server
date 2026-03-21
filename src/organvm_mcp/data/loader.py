@@ -33,6 +33,7 @@ _event_catalog_cache: dict[tuple[str, str], list[dict]] = {}
 _governance_rules_cache: dict[tuple[str, str], dict] = {}
 _system_metrics_cache: dict[tuple[str, str], dict] = {}
 _pipeline_manifest_cache: dict[tuple[str, str], dict] = {}
+_conversation_corpus_surfaces_cache: dict[tuple[str, str], dict] = {}
 
 
 def _cache_key(config: PathConfig | None = None) -> tuple[str, str]:
@@ -124,6 +125,18 @@ def load_pipeline_manifest(config: PathConfig | None = None) -> dict:
     return _pipeline_manifest_cache[key]
 
 
+def load_conversation_corpus_surfaces(config: PathConfig | None = None) -> dict:
+    """Load and cache discovered conversation corpus surfaces."""
+    key = _cache_key(config)
+    if key not in _conversation_corpus_surfaces_cache:
+        from organvm_engine.contextmd.surfaces import collect_conversation_corpus_surfaces
+
+        _conversation_corpus_surfaces_cache[key] = collect_conversation_corpus_surfaces(
+            config=resolve_path_config(config),
+        )
+    return _conversation_corpus_surfaces_cache[key]
+
+
 def reload(config: PathConfig | None = None) -> None:
     """Clear caches for one config pair or for all cached data."""
     if config is None:
@@ -133,6 +146,7 @@ def reload(config: PathConfig | None = None) -> None:
         _governance_rules_cache.clear()
         _system_metrics_cache.clear()
         _pipeline_manifest_cache.clear()
+        _conversation_corpus_surfaces_cache.clear()
         return
 
     key = _cache_key(config)
@@ -142,6 +156,7 @@ def reload(config: PathConfig | None = None) -> None:
     _governance_rules_cache.pop(key, None)
     _system_metrics_cache.pop(key, None)
     _pipeline_manifest_cache.pop(key, None)
+    _conversation_corpus_surfaces_cache.pop(key, None)
 
 
 def _read_json(path: Path) -> dict:

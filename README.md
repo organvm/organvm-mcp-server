@@ -12,6 +12,7 @@ It provides a unified view of:
 - **Graph**: Dependency relationships and inter-organ flow.
 - **Health**: System-wide health metrics and Omega status.
 - **Context**: Tailored awareness for the current working directory.
+- **Conversation Corpus Surfaces**: Governed CCE exports with validation state and provider readiness.
 
 ## Tools Provided
 
@@ -26,6 +27,7 @@ It provides a unified view of:
 - `organvm_system_health`: Get a high-level health report.
 - `organvm_omega_status`: Track transition criteria progress.
 - `organvm_get_context`: **Primary Tool** — Get everything relevant to your current repo.
+- `organvm_conversation_corpus_surfaces`: Inspect exported conversation-memory surfaces and their validation state.
 
 ## Installation
 

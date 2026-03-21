@@ -3,10 +3,13 @@
 from pathlib import Path
 
 from organvm_mcp.data.paths import (
+    conversation_corpus_surface_bundle_path,
+    conversation_corpus_surface_dir,
     corpus_dir,
     event_catalog_path,
     governance_rules_path,
     registry_path,
+    repo_root_path,
     workspace_root,
 )
 
@@ -47,3 +50,21 @@ def test_engine_dir_suffix():
 
     result = engine_dir()
     assert str(result).endswith("meta-organvm/organvm-engine")
+
+
+def test_repo_root_path():
+    result = repo_root_path("organvm-i-theoria", "conversation-corpus-engine")
+    assert str(result).endswith("organvm-i-theoria/conversation-corpus-engine")
+
+
+def test_conversation_corpus_surface_dir():
+    result = conversation_corpus_surface_dir("organvm-i-theoria", "conversation-corpus-engine")
+    assert str(result).endswith("reports/surfaces")
+
+
+def test_conversation_corpus_surface_bundle_path():
+    result = conversation_corpus_surface_bundle_path(
+        "organvm-i-theoria",
+        "conversation-corpus-engine",
+    )
+    assert str(result).endswith("reports/surfaces/surface-bundle.json")

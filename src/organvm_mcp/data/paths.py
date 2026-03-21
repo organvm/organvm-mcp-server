@@ -61,3 +61,26 @@ def organ_directories(config: PathConfig | None = None) -> dict[str, Path]:
 
     ws = workspace_root(config)
     return {key: ws / subpath for key, subpath in ORGAN_DIR_MAP.items()}
+
+
+def repo_root_path(org: str, repo: str, config: PathConfig | None = None) -> Path:
+    """Return the path to a repository under the workspace."""
+    return workspace_root(config) / org / repo
+
+
+def conversation_corpus_surface_dir(
+    org: str,
+    repo: str,
+    config: PathConfig | None = None,
+) -> Path:
+    """Return the conventional reports/surfaces directory for a repository."""
+    return repo_root_path(org, repo, config) / "reports" / "surfaces"
+
+
+def conversation_corpus_surface_bundle_path(
+    org: str,
+    repo: str,
+    config: PathConfig | None = None,
+) -> Path:
+    """Return the conventional surface bundle path for a repository."""
+    return conversation_corpus_surface_dir(org, repo, config) / "surface-bundle.json"

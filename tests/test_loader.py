@@ -81,12 +81,21 @@ class TestLoaderCaching:
         result = loader_mod.load_event_catalog()
         assert result == []
 
+    @patch("organvm_engine.contextmd.surfaces.collect_conversation_corpus_surfaces")
+    def test_load_conversation_corpus_surfaces_caches(self, mock_collect):
+        mock_collect.return_value = {"surface_count": 1, "surfaces": []}
+        first = loader_mod.load_conversation_corpus_surfaces()
+        second = loader_mod.load_conversation_corpus_surfaces()
+        assert first is second
+        mock_collect.assert_called_once()
+
     def test_reload_clears_all_caches(self):
         # Set caches to non-empty values directly
         loader_mod._registry_cache[("test", "test")] = {"data": True}
         loader_mod._seeds_cache[("test", "test")] = [{"data": True}]
         loader_mod._event_catalog_cache[("test", "test")] = [{"data": True}]
         loader_mod._governance_rules_cache[("test", "test")] = {"data": True}
+        loader_mod._conversation_corpus_surfaces_cache[("test", "test")] = {"data": True}
 
         loader_mod.reload()
 
@@ -94,3 +103,4 @@ class TestLoaderCaching:
         assert loader_mod._seeds_cache == {}
         assert loader_mod._event_catalog_cache == {}
         assert loader_mod._governance_rules_cache == {}
+        assert loader_mod._conversation_corpus_surfaces_cache == {}

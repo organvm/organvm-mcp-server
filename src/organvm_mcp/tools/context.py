@@ -10,6 +10,33 @@ from __future__ import annotations
 from typing import Any
 
 
+def conversation_corpus_surfaces(
+    repo: str | None = None,
+    state: str | None = None,
+) -> dict[str, Any]:
+    """Return discovered conversation corpus surfaces with optional filters."""
+    from organvm_mcp.data.loader import load_conversation_corpus_surfaces
+
+    report = load_conversation_corpus_surfaces()
+    surfaces = report.get("surfaces", [])
+
+    if repo:
+        repo_name = repo.split("/")[-1]
+        surfaces = [item for item in surfaces if item.get("repo") == repo_name]
+
+    if state:
+        surfaces = [item for item in surfaces if item.get("state") == state]
+
+    digests = [_surface_digest(item) for item in surfaces]
+    return {
+        "surface_count": len(digests),
+        "valid_count": sum(1 for item in digests if item["state"] == "valid"),
+        "partial_count": sum(1 for item in digests if item["state"] == "partial"),
+        "invalid_count": sum(1 for item in digests if item["state"] == "invalid"),
+        "surfaces": digests,
+    }
+
+
 def get_context(
     repo: str | None = None,
     org: str | None = None,
@@ -25,10 +52,15 @@ def get_context(
 
     from organvm_engine.registry.query import find_repo
 
-    from organvm_mcp.data.loader import load_all_seeds, load_registry
+    from organvm_mcp.data.loader import (
+        load_all_seeds,
+        load_conversation_corpus_surfaces,
+        load_registry,
+    )
 
     registry = load_registry()
     seeds = load_all_seeds()
+    surface_report = load_conversation_corpus_surfaces()
 
     # 1. Resolve repo name and organization
     resolved_repo = repo
@@ -54,6 +86,10 @@ def get_context(
             return {
                 "repo": {"name": resolved_repo, "org": "4444J99", "tier": "personal"},
                 "governance": {"notes": ["Personal workspace repo — no inter-organ obligations"]},
+                "conversation_corpus": _conversation_corpus_overview(
+                    surface_report,
+                    resolved_repo,
+                ),
             }
         return {"error": f"Repository '{resolved_repo}' not found in ORGANVM registry"}
 
@@ -93,6 +129,7 @@ def get_context(
             "downstream_organs": downstream,
             "notes": ["Unidirectional flow: I→II→III only."],
         },
+        "conversation_corpus": _conversation_corpus_overview(surface_report, resolved_repo),
     }
 
 
@@ -118,6 +155,7 @@ def get_context_markdown(
     organ_data = ctx["organ"]
     edges = ctx.get("edges", {})
     governance = ctx.get("governance", {})
+    conversation_corpus = ctx.get("conversation_corpus", {})
 
     lines = [
         f"## System Context: {repo_data.get('name')}",
@@ -149,4 +187,72 @@ def get_context_markdown(
         for n in governance["notes"]:
             lines.append(f"- {n}")
 
+    if conversation_corpus.get("available"):
+        lines.append("")
+        lines.append("### Conversation Corpus")
+        lines.append(
+            "- Surfaces: "
+            f"{conversation_corpus.get('surface_count', 0)} total / "
+            f"{conversation_corpus.get('valid_count', 0)} valid",
+        )
+        default_surface = conversation_corpus.get("default_surface")
+        if default_surface:
+            lines.append(
+                "- Default surface: "
+                f"`{default_surface.get('organization')}/{default_surface.get('repo')}` "
+                f"[{default_surface.get('state')}]",
+            )
+        current_repo_surface = conversation_corpus.get("current_repo_surface")
+        if current_repo_surface:
+            lines.append(
+                "- Current repo surface: "
+                f"`{current_repo_surface.get('organization')}/{current_repo_surface.get('repo')}` "
+                f"[{current_repo_surface.get('state')}]",
+            )
+
     return "\n".join(lines)
+
+
+def _conversation_corpus_overview(
+    report: dict[str, Any],
+    resolved_repo: str,
+) -> dict[str, Any]:
+    surfaces = report.get("surfaces", [])
+    current_repo_surface = next(
+        (item for item in surfaces if item.get("repo") == resolved_repo),
+        None,
+    )
+    default_surface = next(
+        (item for item in surfaces if item.get("state") == "valid"),
+        surfaces[0] if surfaces else None,
+    )
+    return {
+        "available": bool(surfaces),
+        "surface_count": report.get("surface_count", 0),
+        "valid_count": report.get("valid_count", 0),
+        "partial_count": report.get("partial_count", 0),
+        "invalid_count": report.get("invalid_count", 0),
+        "repositories": [
+            f"{item.get('organization')}/{item.get('repo')}"
+            for item in surfaces[:10]
+        ],
+        "default_surface": _surface_digest(default_surface) if default_surface else None,
+        "current_repo_surface": (
+            _surface_digest(current_repo_surface) if current_repo_surface else None
+        ),
+    }
+
+
+def _surface_digest(surface: dict[str, Any] | None) -> dict[str, Any] | None:
+    if surface is None:
+        return None
+    return {
+        "repo": surface.get("repo"),
+        "organization": surface.get("organization"),
+        "repo_root": surface.get("repo_root"),
+        "surface_dir": surface.get("surface_dir"),
+        "state": surface.get("state"),
+        "files": surface.get("files"),
+        "summary": surface.get("summary"),
+        "validation": surface.get("validation"),
+    }

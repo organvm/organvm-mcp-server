@@ -336,6 +336,27 @@ TOOLS = [
             },
         },
     ),
+    Tool(
+        name="organvm_conversation_corpus_surfaces",
+        description=(
+            "List discovered Conversation Corpus Engine surface exports with "
+            "validation state, default corpus pointers, and provider counts."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string",
+                    "description": "Filter to a specific repository name",
+                },
+                "state": {
+                    "type": "string",
+                    "enum": ["valid", "partial", "invalid"],
+                    "description": "Filter by surface validation state",
+                },
+            },
+        },
+    ),
     # ── Revenue tools ────────────────────────────────────────────────
     Tool(
         name="organvm_revenue_pipeline",
@@ -1282,7 +1303,10 @@ TOOLS = [
             "properties": {
                 "organ": {
                     "type": "string",
-                    "description": "Optional: filter to pairs involving this organ (e.g., 'I', 'META')",
+                    "description": (
+                        "Optional: filter to pairs involving this organ "
+                        "(e.g., 'I', 'META')"
+                    ),
                 },
             },
         },
@@ -2284,6 +2308,9 @@ _DISPATCH = {
     "organvm_pitch_status": lambda args: health.pitch_status(),
     # Context
     "organvm_get_context": lambda args: context.get_context(**args),
+    "organvm_conversation_corpus_surfaces": lambda args: context.conversation_corpus_surfaces(
+        **args,
+    ),
     # Revenue
     "organvm_revenue_pipeline": lambda args: revenue.revenue_pipeline(),
     "organvm_revenue_products": lambda args: revenue.revenue_products(),
