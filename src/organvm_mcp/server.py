@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import TextContent, Tool
+from mcp.types import TextContent, Tool, ToolAnnotations
 
 from organvm_mcp.tools import (
     atoms,
@@ -47,12 +47,72 @@ from organvm_mcp.tools import (
 
 server = Server("organvm")
 
+# ── Annotation presets ────────────────────────────────────────────
+# Reusable annotation bundles for the five tool behavioral classes.
+
+_READ = ToolAnnotations(
+    readOnlyHint=True,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=False,
+)
+"""Pure read: queries registry, graph, health data. No side effects."""
+
+_COMPUTE = ToolAnnotations(
+    readOnlyHint=True,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=False,
+)
+"""Computation over local data: metrics, audits, scans. Deterministic, no side effects."""
+
+_ANALYZE = ToolAnnotations(
+    readOnlyHint=True,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=False,
+)
+"""Analysis tools: signal detection, pattern matching. Read-only but input-dependent output."""
+
+_WRITE = ToolAnnotations(
+    readOnlyHint=False,
+    destructiveHint=False,
+    idempotentHint=False,
+    openWorldHint=False,
+)
+"""State-mutating: punch-in, record insight, emit events. Non-destructive but not idempotent."""
+
+_WRITE_IDEMPOTENT = ToolAnnotations(
+    readOnlyHint=False,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=False,
+)
+"""State-mutating but idempotent: bridge, snapshot. Safe to retry."""
+
+_RELEASE = ToolAnnotations(
+    readOnlyHint=False,
+    destructiveHint=True,
+    idempotentHint=True,
+    openWorldHint=False,
+)
+"""Destructive release: punch-out, tool-checkin. Removes state. Idempotent (releasing twice is fine)."""
+
+_GENERATE = ToolAnnotations(
+    readOnlyHint=False,
+    destructiveHint=False,
+    idempotentHint=False,
+    openWorldHint=False,
+)
+"""Generative: scaffold, render with write=true. Creates new artifacts."""
+
 # ── Tool definitions ──────────────────────────────────────────────
 
 TOOLS = [
     # Registry tools
     Tool(
         name="organvm_query_registry",
+        title="Query Registry",
         description=(
             "Search and filter repos in the ORGANVM registry. "
             "Filter by organ, tier, promotion status, or name pattern. "
@@ -88,9 +148,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_get_repo",
+        title="Get Repository Details",
         description=(
             "Get full details for a specific ORGANVM repository "
             "including metadata, dependencies, launch metrics, and current status."
@@ -103,17 +165,21 @@ TOOLS = [
             },
             "required": ["org", "name"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_list_organs",
+        title="List Organs",
         description=(
             "List all 8 ORGANVM organs with summary statistics (repo count, tiers, edges)."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     # Seed tools
     Tool(
         name="organvm_get_seed",
+        title="Get Seed Contract",
         description="Get the parsed seed.yaml automation contract for a specific repository.",
         inputSchema={
             "type": "object",
@@ -123,9 +189,11 @@ TOOLS = [
             },
             "required": ["org", "name"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_find_edges",
+        title="Find Data Edges",
         description=(
             "Find produces/consumes edges for a repo or organ. "
             "Shows what data flows in and out — events, artifacts, dependencies."
@@ -142,9 +210,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_get_event_contract",
+        title="Get Event Contract",
         description=(
             "Get the event catalog entry for a dispatch event type "
             "(e.g., essay.published, community.milestone, theory.candidate)."
@@ -156,17 +226,21 @@ TOOLS = [
             },
             "required": ["event_type"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_list_events",
+        title="List Event Catalog",
         description=(
             "List all event types in the ORGANVM event catalog with producers and consumers."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     # Graph tools
     Tool(
         name="organvm_trace_dependencies",
+        title="Trace Dependencies",
         description=(
             "Trace the dependency graph from a repo or organ. "
             "Shows upstream (what I depend on) and downstream (what depends on me)."
@@ -184,9 +258,11 @@ TOOLS = [
                 "depth": {"type": "integer", "default": 2},
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_check_dependency",
+        title="Check Dependency Rule",
         description=(
             "Check if a dependency between two organs is allowed by governance rules. "
             "ORGANVM enforces unidirectional flow: I→II→III, no back-edges."
@@ -199,9 +275,11 @@ TOOLS = [
             },
             "required": ["source_organ", "target_organ"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_get_dependency_graph",
+        title="Get Dependency Graph",
         description=(
             "Get the full dependency graph or a subgraph for one organ. "
             "Returns nodes and edges suitable for visualization."
@@ -212,36 +290,44 @@ TOOLS = [
                 "organ": {"type": "string", "description": "Optional organ filter"},
             },
         },
+        annotations=_READ,
     ),
     # Health tools
     Tool(
         name="organvm_system_health",
+        title="System Health Summary",
         description=(
             "Get system-wide health summary: repo counts, CI coverage, "
             "test coverage, seed coverage, promotion pipeline, revenue status."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_omega_status",
+        title="Omega Criteria Progress",
         description=(
             "Get omega criteria progress — 17 criteria across 5 horizons "
             "tracking the system's transition from construction to occupation. "
             "Returns real evaluated data from soak tests and registry."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_ci_health",
+        title="CI Health Summary",
         description=(
             "Get CI health summary from latest soak test data. "
             "Shows pass/fail counts, failures categorized by organ, "
             "and identifies phantom failures from schedule-only workflows."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_ci_audit",
+        title="CI Infrastructure Audit",
         description=(
             "Run The Descent Protocol infrastructure audit. "
             "Checks all 15 GitHub infrastructure mechanisms (CI, dependabot, "
@@ -262,9 +348,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_upcoming_deadlines",
+        title="Upcoming Deadlines",
         description=(
             "Get upcoming deadlines from the rolling-todo — funding applications, "
             "submissions, and time-sensitive tasks sorted by date with urgency levels."
@@ -279,18 +367,22 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_pitch_status",
+        title="Pitch Deck Coverage",
         description=(
             "Get pitch deck coverage across the system — how many repos "
             "have pitch decks (bespoke vs generated), broken down by organ."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     # Organism tools
     Tool(
         name="organvm_organism",
+        title="System Organism Snapshot",
         description=(
             "Get the unified system organism — hierarchical snapshot of all repos, "
             "organs, gates, and promotion status. Optionally zoom to a specific "
@@ -315,10 +407,12 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     # Context tools
     Tool(
         name="organvm_get_context",
+        title="Get Repository Context",
         description=(
             "Get full contextual awareness for a repo. Returns organ info, "
             "produces/consumes edges, siblings, governance constraints, and "
@@ -335,9 +429,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_conversation_corpus_surfaces",
+        title="Conversation Corpus Surfaces",
         description=(
             "List discovered Conversation Corpus Engine surface exports with "
             "validation state, default corpus pointers, and provider counts."
@@ -356,23 +452,29 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     # ── Revenue tools ────────────────────────────────────────────────
     Tool(
         name="organvm_revenue_pipeline",
+        title="Revenue Pipeline Status",
         description=(
             "Full 6-layer revenue pipeline status: products, grants, consulting. "
             "Aggregates ORGAN-III products, funding deadlines, and consulting packages."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_revenue_products",
+        title="Revenue Products",
         description=("ORGAN-III products with revenue model, status, and deployment readiness."),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     Tool(
         name="organvm_revenue_readiness",
+        title="Deployment Readiness Assessment",
         description=(
             "Per-product deployment readiness assessment with blockers, "
             "promotion eligibility, and downstream impact analysis."
@@ -387,9 +489,11 @@ TOOLS = [
             },
             "required": ["repo_name"],
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_revenue_grants",
+        title="Grant & Funding Deadlines",
         description=(
             "Grant and funding deadline view — upcoming opportunities "
             "filtered from the rolling-todo with urgency levels."
@@ -404,26 +508,32 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_revenue_consulting",
+        title="Consulting Packages",
         description=(
             "7 consulting service packages with SOP existence verification. "
             "Shows readiness based on whether backing SOPs exist."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     # ── Governance tools ─────────────────────────────────────────────
     Tool(
         name="organvm_governance_audit",
+        title="Governance Audit",
         description=(
             "Full system governance audit — checks promotion rules, "
             "dependency constraints, tier requirements, and organ policies."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_governance_check_transition",
+        title="Check Promotion Transition",
         description=(
             "Validate whether a promotion state transition is allowed. "
             "E.g., can a repo move from CANDIDATE to PUBLIC_PROCESS?"
@@ -444,9 +554,11 @@ TOOLS = [
             },
             "required": ["current_state", "target_state"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_governance_valid_transitions",
+        title="Valid Promotion Transitions",
         description="List all valid promotion transitions from a given state.",
         inputSchema={
             "type": "object",
@@ -459,17 +571,21 @@ TOOLS = [
             },
             "required": ["current_state"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_governance_validate_deps",
+        title="Validate Dependency Graph",
         description=(
             "Full dependency graph validation — checks for missing targets, "
             "self-dependencies, back-edges, and cycles."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_governance_impact",
+        title="Blast Radius Analysis",
         description=(
             "Blast radius calculation — what repos are affected "
             "if a given repo changes? Shows propagation path."
@@ -484,17 +600,21 @@ TOOLS = [
             },
             "required": ["repo_name"],
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_governance_feedback_loops",
+        title="Feedback Loop Inventory",
         description=(
             "Feedback loop inventory — positive and negative loops "
             "with active detection from registry and seed evidence."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_governance_dictums",
+        title="Constitutional Dictums",
         description=(
             "List constitutional dictums — axioms, organ dictums, "
             "and repo rules from the Ontological Constitution. "
@@ -510,18 +630,22 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_governance_check_dictums",
+        title="Dictum Compliance Check",
         description=(
             "Run dictum compliance checks — validates all enforceable "
             "dictums (AX-1 DAG, AX-3 TTL, OD-III factory gate, etc.) "
             "against the live registry. Returns violations by severity."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_governance_placement",
+        title="Organ Placement Audit",
         description=(
             "Audit repo-to-organ placement affinity — scores how well each repo "
             "fits its current organ based on organ-definitions.json criteria. "
@@ -541,9 +665,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_governance_excavate",
+        title="Buried Entity Excavation",
         description=(
             "Scan the workspace for buried entities — nested sub-packages, "
             "cross-organ repo families, extractable modules, and misplaced "
@@ -577,18 +703,22 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     # ── Session intelligence tools ───────────────────────────────────
     Tool(
         name="organvm_session_agents",
+        title="Session Agent Inventory",
         description=(
             "Multi-agent session inventory — counts and sizes "
             "for Claude, Gemini, and Codex sessions."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_session_list",
+        title="List Sessions",
         description=("List recent sessions with metadata (agent, project, date, duration)."),
         inputSchema={
             "type": "object",
@@ -609,9 +739,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_session_plans",
+        title="Session Plan Inventory",
         description=(
             "Plan file inventory by project, organ, and agent. "
             "Shows plan metadata including verification status."
@@ -634,9 +766,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_session_analyze_prompts",
+        title="Prompt Pattern Analysis",
         description=(
             "Cross-session prompt pattern analysis — opening words, "
             "repeated phrases, agent breakdown, and aggregate stats."
@@ -656,10 +790,12 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     # ── SOP tools ────────────────────────────────────────────────────
     Tool(
         name="organvm_sop_discover",
+        title="Discover SOPs",
         description=(
             "Discover all SOPs and METADOCs across the workspace. "
             "Returns file metadata, scope, phase, and type breakdown."
@@ -673,17 +809,21 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_sop_audit",
+        title="SOP Coverage Audit",
         description=(
             "Audit SOP coverage vs the METADOC inventory. "
             "Identifies tracked, untracked, reference copies, and missing SOPs."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_sop_resolve",
+        title="Resolve Applicable SOPs",
         description=(
             "Resolve applicable SOPs for a context using T4>T3>T2 cascade. "
             "System SOPs always included; filters by organ, repo, and phase."
@@ -699,23 +839,29 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     # ── Distill / pattern tools ──────────────────────────────────────
     Tool(
         name="organvm_distill_patterns",
+        title="Operational Patterns",
         description="List all 15 operational patterns from the distillation taxonomy.",
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     Tool(
         name="organvm_distill_coverage",
+        title="Pattern Coverage Analysis",
         description=(
             "SOP-to-pattern coverage analysis — which patterns have "
             "backing SOPs, which are partial, which are uncovered."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_distill_scaffold",
+        title="Generate SOP Scaffold",
         description=("Generate a SOP markdown scaffold for an uncovered operational pattern."),
         inputSchema={
             "type": "object",
@@ -727,58 +873,74 @@ TOOLS = [
             },
             "required": ["pattern_id"],
         },
+        annotations=_GENERATE,
     ),
     # ── Metrics tools ────────────────────────────────────────────────
     Tool(
         name="organvm_metrics_compute",
+        title="Compute System Metrics",
         description=(
             "System-wide metrics: total repos, per-organ counts, "
             "status distribution, code files, test files."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_metrics_consilience",
+        title="Consilience Index",
         description=(
             "Consilience index report — how well derived principles "
             "are supported by independent research evidence."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_metrics_ci_trend",
+        title="CI Pass Rate Trend",
         description="CI pass rate trend over time from soak test snapshots.",
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     Tool(
         name="organvm_metrics_engagement_trend",
+        title="Engagement Metrics Trend",
         description="Engagement metrics trend (stars, forks) over time.",
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     Tool(
         name="organvm_metrics_vars",
+        title="System Variable Manifest",
         description=(
             "System variable manifest — all computed metric variables "
             "available for injection into markdown files."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     Tool(
         name="organvm_metrics_lint",
+        title="Metric Reference Lint",
         description=(
             "Lint workspace for unbound metric references — bare numbers "
             "that should be wrapped in variable markers."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     # ── Atoms / task tracking tools ──────────────────────────────────
     Tool(
         name="organvm_atoms_status",
+        title="Atomization Pipeline Status",
         description="Atomization pipeline status from pipeline-manifest.json.",
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     Tool(
         name="organvm_atoms_rollup",
+        title="Task Rollup by Organ",
         description=(
             "Per-organ task rollup — total/pending/completed tasks "
             "aggregated from the atomization pipeline."
@@ -792,9 +954,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_atoms_tasks",
+        title="Pending Tasks for Repo",
         description="Pending tasks for a specific repo from the atomization pipeline.",
         inputSchema={
             "type": "object",
@@ -810,9 +974,11 @@ TOOLS = [
             },
             "required": ["repo_name"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_atoms_links",
+        title="Task-Prompt Links",
         description=(
             "Cross-system task-prompt links — Jaccard-matched connections "
             "between atomized tasks and annotated prompts."
@@ -827,10 +993,12 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     # ── Prompting standards tools ────────────────────────────────────
     Tool(
         name="organvm_prompting_guidelines",
+        title="Prompting Guidelines",
         description=(
             "Get agent-specific prompting guidelines — context limits, "
             "preferred format, thinking mode, key patterns."
@@ -845,15 +1013,19 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_prompting_all",
+        title="All Prompting Guidelines",
         description="Get all provider prompting guidelines in one view.",
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     # Coordination tools (punch-in/punch-out)
     Tool(
         name="organvm_punch_in",
+        title="Punch In (Claim Work Area)",
         description=(
             "Punch in: declare areas of influence for this AI work session. "
             "Other AI streams will see your claim and avoid those areas. "
@@ -917,9 +1089,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_WRITE,
     ),
     Tool(
         name="organvm_punch_out",
+        title="Punch Out (Release Work Claim)",
         description=("Punch out: release a work claim. Pass the claim_id from punch_in."),
         inputSchema={
             "type": "object",
@@ -931,17 +1105,21 @@ TOOLS = [
             },
             "required": ["claim_id"],
         },
+        annotations=_RELEASE,
     ),
     Tool(
         name="organvm_work_board",
+        title="Work Board",
         description=(
             "View the work board: all active AI stream claims. "
             "Shows who is working on what, across all agents."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     Tool(
         name="organvm_check_conflicts",
+        title="Check Work Conflicts",
         description=(
             "Check if proposed work areas conflict with active claims "
             "before starting. Does NOT create a claim."
@@ -971,9 +1149,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_capacity",
+        title="Machine Capacity",
         description=(
             "Check machine resource capacity. Shows current load from "
             "active AI streams (light=1, medium=2, heavy=3 units) "
@@ -981,9 +1161,11 @@ TOOLS = [
             "Call before starting heavy work."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     Tool(
         name="organvm_prove_sweep",
+        title="Collect Test Obligations",
         description=(
             "Collect all pending test obligations from all agent sessions. "
             "Returns a deduplicated list of test commands to run in one "
@@ -991,10 +1173,12 @@ TOOLS = [
             "one prover session runs this to verify integrated correctness."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     # Tool checkout line
     Tool(
         name="organvm_tool_checkout",
+        title="Tool Checkout (Reserve Lane)",
         description=(
             "Check out a tool before running a command. If another agent "
             "is already running a heavy command, returns wait advisory. "
@@ -1024,9 +1208,11 @@ TOOLS = [
             },
             "required": ["handle", "command_hint"],
         },
+        annotations=_WRITE,
     ),
     Tool(
         name="organvm_tool_checkin",
+        title="Tool Checkin (Release Lane)",
         description=(
             "Check in a tool after a command completes. Releases the lane for other agents."
         ),
@@ -1040,18 +1226,22 @@ TOOLS = [
             },
             "required": ["checkout_id"],
         },
+        annotations=_RELEASE,
     ),
     Tool(
         name="organvm_tool_queue",
+        title="Tool Checkout Queue",
         description=(
             "View the tool checkout queue — who's running what right now. "
             "Shows heavy and medium lane occupancy."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     # ── Ecosystem tools ────────────────────────────────────────────────
     Tool(
         name="organvm_ecosystem_profile",
+        title="Ecosystem Profile",
         description=(
             "Get full business ecosystem profile for a product — "
             "delivery, revenue, marketing, community, content arms with status. "
@@ -1067,9 +1257,11 @@ TOOLS = [
             },
             "required": ["repo"],
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_ecosystem_matrix",
+        title="Ecosystem Pillar Matrix",
         description=(
             "Cross-product comparison of one pillar (e.g. 'revenue', 'delivery'). "
             "Shows all products' arms for that pillar side by side."
@@ -1088,9 +1280,11 @@ TOOLS = [
             },
             "required": ["pillar"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_ecosystem_gaps",
+        title="Ecosystem Gap Analysis",
         description=(
             "Find missing pillars/arms across product ecosystems. "
             "Compares against suggested defaults and flags suggestions."
@@ -1108,9 +1302,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_ecosystem_actions",
+        title="Ecosystem Next Actions",
         description=(
             "Prioritized next-action list from all ecosystem profiles. "
             "Aggregates next_action fields, sorted by priority."
@@ -1124,9 +1320,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_pillar_dna",
+        title="Pillar DNA Contracts",
         description=(
             "Get pillar DNA lifecycle contracts for a product — "
             "research scope, artifacts, gen/crit prompts, lifecycle gates. "
@@ -1146,9 +1344,11 @@ TOOLS = [
             },
             "required": ["repo"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_ecosystem_staleness",
+        title="Artifact Staleness Report",
         description=(
             "Staleness report for pillar DNA artifacts. "
             "Checks all artifact freshness against staleness thresholds."
@@ -1166,9 +1366,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_ecosystem_lifecycle",
+        title="Ecosystem Lifecycle Stages",
         description=(
             "Lifecycle stages across repos — shows which stage each pillar "
             "is in (conception, research, planning, building, live, etc.)."
@@ -1182,10 +1384,12 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     # ── Network testament tools ─────────────────────────────────────
     Tool(
         name="organvm_network_map",
+        title="Network Mirror Map",
         description=(
             "Show external mirror connections for a repo or all repos. "
             "Three lenses: technical (dependencies), parallel (similar projects), "
@@ -1204,17 +1408,21 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_network_status",
+        title="Network Health Summary",
         description=(
             "Network health summary — density, mirror coverage per lens, "
             "engagement velocity, convergence points (projects mirrored by multiple repos)."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_network_suggest",
+        title="Engagement Suggestions",
         description=(
             "Actionable engagement suggestions based on network state — "
             "convergence targets, blind spots, lens gaps, unused engagement forms."
@@ -1228,9 +1436,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_network_log",
+        title="Log Network Engagement",
         description=(
             "Record an engagement action to the network ledger. "
             "Lens: technical|parallel|kinship. "
@@ -1272,27 +1482,33 @@ TOOLS = [
             },
             "required": ["organvm_repo", "external_project", "lens", "action_type", "detail"],
         },
+        annotations=_WRITE,
     ),
     Tool(
         name="organvm_network_convergences",
+        title="Network Convergence Points",
         description=(
             "External projects mirrored by multiple ORGANVM repos — "
             "high-value engagement targets where the system has many connection points."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     # ── Trivium tools (Dialectica Universalis) ─────────────────────
     Tool(
         name="organvm_trivium_dialects",
+        title="Universal Logic Dialects",
         description=(
             "List all eight dialects of universal logic — one per organ. "
             "Each dialect has a classical liberal arts parallel, formal basis, "
             "and translation role. SPEC-018 Dialectica Universalis."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     Tool(
         name="organvm_trivium_matrix",
+        title="Translation Evidence Matrix",
         description=(
             "Show the 28-pair translation evidence matrix. Each organ pair "
             "has a tier (formal/structural/analogical/emergent), preservation "
@@ -1310,9 +1526,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_trivium_scan",
+        title="Scan Organ Correspondences",
         description=(
             "Scan structural correspondences between two organs. "
             "Detects naming, structural, functional, semantic, maturity, "
@@ -1332,27 +1550,33 @@ TOOLS = [
             },
             "required": ["organ_a", "organ_b"],
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_trivium_status",
+        title="Trivium Subsystem Health",
         description=(
             "Trivium subsystem health — dialect count, tier distribution, "
             "the thesis statement. SPEC-018 Dialectica Universalis."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     # ── Testament tools ──────────────────────────────────────────────
     Tool(
         name="organvm_testament_status",
+        title="Testament System Status",
         description=(
             "Testament system status — what artifacts the system can produce "
             "and has produced. Shows registered modalities, organ profiles, "
             "catalog counts."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     Tool(
         name="organvm_testament_catalog",
+        title="Testament Artifact Catalog",
         description=(
             "List all produced testament artifacts — the system's generative "
             "self-portrait catalog. Filter by organ."
@@ -1366,9 +1590,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_testament_render",
+        title="Render Testament Artifacts",
         description=(
             "Render testament artifacts from live system data. "
             "Dry-run by default — set write=true to produce files. "
@@ -1388,19 +1614,23 @@ TOOLS = [
                 },
             },
         },
+        annotations=_GENERATE,
     ),
     # ── Ledger tools (Testament Protocol) ─────────────────────────────
     Tool(
         name="organvm_ledger_status",
+        title="Testament Chain Status",
         description=(
             "Testament Chain status — event count, chain integrity, "
             "last sequence number and hash. The chain is the system's "
             "native blockchain where every state mutation is hash-linked."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     Tool(
         name="organvm_ledger_log",
+        title="Testament Chain Log",
         description=(
             "Query events from the Testament Chain. Filter by event type "
             "or tier (governance/milestone/operational/infrastructure)."
@@ -1424,18 +1654,22 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_ledger_verify",
+        title="Verify Chain Integrity",
         description=(
             "Full chain integrity verification — walks every event from "
             "genesis, verifying hashes and chain links. Reports any "
             "tampering or corruption."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_ledger_recent",
+        title="Recent Chain Events",
         description=(
             "Most recent chain events, optionally filtered by tier."
         ),
@@ -1453,19 +1687,23 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_ledger_digest",
+        title="Chain Digest Summary",
         description=(
             "Digest summary of the Testament Chain — counts by type, "
             "tier, organ, governance highlights, and formatted text "
             "suitable for social syndication."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     # ── Indexer tools ────────────────────────────────────────────────
     Tool(
         name="organvm_index_scan",
+        title="Deep Structural Index",
         description=(
             "Deep structural index — scans repos to absolute bottom, "
             "identifies atomic components (Python packages, JS modules, "
@@ -1487,9 +1725,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_index_show",
+        title="Show Component Tree",
         description=(
             "Show the component tree for a single repo — atomic components "
             "with cohesion types, file/line counts, dominant language, "
@@ -1506,9 +1746,11 @@ TOOLS = [
             },
             "required": ["repo"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_index_bridge",
+        title="Bridge Index to Ontologia",
         description=(
             "Register indexed components as ontologia entities — "
             "creates MODULE entities with permanent UIDs for all atomic "
@@ -1528,9 +1770,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_WRITE_IDEMPOTENT,
     ),
     Tool(
         name="organvm_query_relations",
+        title="Multi-Scale Relation Query",
         description=(
             "Multi-scale relation query — returns all relations for an "
             "entity across three scales: inter-repo (seed graph produces/"
@@ -1548,9 +1792,11 @@ TOOLS = [
             },
             "required": ["entity"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_entity_memory",
+        title="Entity Memory Aggregation",
         description=(
             "Aggregate all signals about an entity from every data source: "
             "pulse events, shared memory insights, ontologia events and "
@@ -1571,10 +1817,12 @@ TOOLS = [
             },
             "required": ["entity"],
         },
+        annotations=_READ,
     ),
     # ── Pulse tools ──────────────────────────────────────────────────
     Tool(
         name="organvm_pulse_mood",
+        title="System Mood",
         description=(
             "System mood — qualitative health summary derived from "
             "organism health %, density, staleness, and velocity signals. "
@@ -1582,18 +1830,22 @@ TOOLS = [
             "with reasoning."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_pulse_density",
+        title="Interconnection Density",
         description=(
             "Interconnection density — edge saturation, cross-organ wiring, "
             "seed/CI/test/doc coverage, and composite density score (0-100). "
             "Low density = under-wired and fragile."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_pulse_events",
+        title="Recent Pulse Events",
         description=(
             "Recent events from the append-only event bus. "
             "Filter by event type and limit. "
@@ -1613,9 +1865,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_pulse_nerve",
+        title="Event Subscription Wiring",
         description=(
             "Subscription wiring from seed.yaml declarations — "
             "which repos listen for which events. "
@@ -1630,9 +1884,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_pulse_emit",
+        title="Emit Event",
         description=(
             "Emit an event to the event bus and show propagation results. "
             "Returns the emitted event and list of notified subscribers."
@@ -1656,9 +1912,11 @@ TOOLS = [
             },
             "required": ["event_type"],
         },
+        annotations=_WRITE,
     ),
     Tool(
         name="organvm_pulse_briefing",
+        title="Session Briefing",
         description=(
             "Session briefing for recent system activity — "
             "what changed in the last N hours. "
@@ -1674,9 +1932,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_pulse_memory",
+        title="Shared Agent Memory",
         description=(
             "Query shared cross-agent memory — insights recorded by "
             "Claude, Gemini, Codex sessions for collective awareness."
@@ -1699,9 +1959,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_pulse_record_insight",
+        title="Record Insight to Memory",
         description=(
             "Record a new insight to shared cross-agent memory. "
             "Other agents will see this in pulse_memory queries."
@@ -1737,26 +1999,32 @@ TOOLS = [
             },
             "required": ["agent", "category", "content"],
         },
+        annotations=_WRITE,
     ),
     Tool(
         name="organvm_pulse_flow",
+        title="Dependency Flow Activity",
         description=(
             "Dependency flow activity — measures data flow through "
             "the seed graph over recent time window."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_pulse_scan",
+        title="Full Pulse Cycle",
         description=(
             "Run a full pulse cycle: scan all sensors for changes, "
             "compute AMMOI density index, store snapshot to history, "
             "emit heartbeat event. Returns the AMMOI snapshot."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_WRITE,
     ),
     Tool(
         name="organvm_pulse_ammoi",
+        title="AMMOI Density Index",
         description=(
             "Get the AMMOI (Adaptive Macro-Micro Ontological Index) — "
             "multi-scale density at system, organ, or repo level. "
@@ -1775,27 +2043,33 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_pulse_tensions",
+        title="Structural Tension Detection",
         description=(
             "Run structural inference: detect orphaned entities, naming "
             "conflicts, and overcoupled nodes. Returns tension indicators "
             "with severity scores and an overall inference health score."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_pulse_clusters",
+        title="Entity Cluster Detection",
         description=(
             "Detect entity clusters — groups of tightly-coupled entities "
             "found through connected component analysis on the relation graph. "
             "Returns clusters with cohesion scores."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_pulse_advisories",
+        title="Governance Advisories",
         description=(
             "Read governance advisories — actionable recommendations "
             "generated by evaluating policies against live system state. "
@@ -1815,9 +2089,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_pulse_blast_radius",
+        title="Entity Blast Radius",
         description=(
             "Compute blast radius for a specific entity — shows upward "
             "(parents), downward (children), and lateral (dependents) "
@@ -1833,9 +2109,11 @@ TOOLS = [
             },
             "required": ["entity"],
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_pulse_edges",
+        title="Structural Edge Counts",
         description=(
             "Show structural edge counts in ontologia — hierarchy (organ→repo) "
             "and relation (repo→repo) edges with type breakdown and cross-organ "
@@ -1850,9 +2128,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_pulse_temporal",
+        title="Temporal Profile",
         description=(
             "Compute temporal profile from AMMOI history — velocity, acceleration, "
             "and trend direction for 9 system metrics (density, edges, tensions, "
@@ -1872,10 +2152,12 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     # Audit
     Tool(
         name="organvm_infrastructure_audit",
+        title="Infrastructure Wiring Audit",
         description=(
             "Run infrastructure wiring audit — 6-layer verification of filesystem, "
             "registry/seed reconciliation, seed completeness, edge resolution, "
@@ -1901,10 +2183,12 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     # Verification
     Tool(
         name="organvm_verify_system",
+        title="Formal System Verification",
         description=(
             "Run formal verification of the dispatch pipeline — checks contract "
             "coverage (Hoare Logic), temporal ordering (DAG enforcement), and "
@@ -1919,9 +2203,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_verify_contracts",
+        title="Dispatch Contract Check",
         description=(
             "Check registered dispatch contracts — shows required payload fields, "
             "validators, and consumption semantics for each event type."
@@ -1935,10 +2221,12 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     # ── Ontologia tools ──────────────────────────────────────────────
     Tool(
         name="organvm_ontologia_resolve",
+        title="Resolve Entity",
         description=(
             "Resolve an entity in the ontologia structural registry by UID, "
             "display name, slug, or alias. Returns identity, type, status, "
@@ -1954,9 +2242,11 @@ TOOLS = [
             },
             "required": ["query"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_ontologia_list",
+        title="List Ontologia Entities",
         description=(
             "List entities in the ontologia structural registry. "
             "Optionally filter by entity type (organ, repo, module, document)."
@@ -1976,9 +2266,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_ontologia_history",
+        title="Entity Name History",
         description=(
             "Show name history for an ontologia entity — all display names "
             "with temporal validity (valid_from/to), primary flag, and slugs."
@@ -1993,9 +2285,11 @@ TOOLS = [
             },
             "required": ["entity"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_ontologia_events",
+        title="Ontologia Events",
         description=(
             "Show recent ontologia events — entity creation, renames, "
             "deprecations, and structural mutations."
@@ -2010,17 +2304,21 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_ontologia_status",
+        title="Ontologia Store Status",
         description=(
             "Ontologia store status — entity counts by type and lifecycle "
             "status, store path, and last recorded event."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
     ),
     Tool(
         name="organvm_ontologia_bridge_resolve",
+        title="Unified Entity Resolution",
         description=(
             "Unified entity resolution — checks ontologia first (UID-based), "
             "falls back to registry name lookup. Returns source indicator "
@@ -2041,9 +2339,11 @@ TOOLS = [
             },
             "required": ["query"],
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_ontologia_sense",
+        title="Run Sensors",
         description=(
             "Run sensors to detect changes in registry, soak, CI, and "
             "promotion readiness. Returns grouped signals by sensor."
@@ -2060,17 +2360,21 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_ontologia_tensions",
+        title="Ontologia Tension Detection",
         description=(
             "Run tension detection — find orphan entities, naming conflicts, "
             "and overcoupled nodes in the structural registry."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_ontologia_policies",
+        title="Governance Policies",
         description=(
             "List or evaluate governance policies. When evaluate=true, checks "
             "all policies against all entities and returns triggered matches."
@@ -2085,9 +2389,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_ontologia_health",
+        title="Ontologia Entity Health",
         description=(
             "Composite entity health — tensions, clusters, and blast radius. "
             "Optionally focuses on a specific entity."
@@ -2101,9 +2407,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_ontologia_snapshot",
+        title="State Snapshot",
         description=(
             "Create or compare state snapshots for drift detection. "
             "Snapshots capture every entity's properties and metrics."
@@ -2118,9 +2426,11 @@ TOOLS = [
                 },
             },
         },
+        annotations=_WRITE_IDEMPOTENT,
     ),
     Tool(
         name="organvm_ontologia_revisions",
+        title="Revision Log",
         description=(
             "Query the revision log — governance-driven structural change proposals "
             "with evidence trails and status tracking."
@@ -2139,10 +2449,12 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     # Styx Orchestration
     Tool(
         name="organvm_styx_orchestrate_stake",
+        title="Orchestrate Behavioral Stake",
         description=(
             "Trigger a behavioral stake orchestration sequence. "
             "Validates the stake contract and triggers the Taxis receiver."
@@ -2166,9 +2478,11 @@ TOOLS = [
             },
             "required": ["commitment", "amount"],
         },
+        annotations=_WRITE,
     ),
     Tool(
         name="organvm_styx_resolve_audit",
+        title="Resolve Behavioral Stake",
         description=("Resolve a behavioral stake based on peer audit results."),
         inputSchema={
             "type": "object",
@@ -2194,10 +2508,12 @@ TOOLS = [
             },
             "required": ["stake_id", "outcome", "proof_hash"],
         },
+        annotations=_WRITE,
     ),
     # ── Content pipeline tools ─────────────────────────────────────
     Tool(
         name="organvm_content_list",
+        title="List Content Posts",
         description=(
             "List all content pipeline posts with status and distribution info. "
             "Optionally filter by status (draft, published, archived) or tag."
@@ -2215,17 +2531,21 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
     Tool(
         name="organvm_content_status",
+        title="Content Cadence Health",
         description=(
             "Weekly content cadence health check — streak, last post date, "
             "posts this week, and status breakdown (draft/published/archived)."
         ),
         inputSchema={"type": "object", "properties": {}},
+        annotations=_COMPUTE,
     ),
     Tool(
         name="organvm_content_signals",
+        title="Content Signal Detection",
         description=(
             "Run signal detection on session messages to find potential "
             "content moments — voice shifts, standalone power sentences, "
@@ -2242,10 +2562,12 @@ TOOLS = [
             },
             "required": ["messages"],
         },
+        annotations=_ANALYZE,
     ),
     # IRF tools
     Tool(
         name="organvm_irf_query",
+        title="Query Work Registry (IRF)",
         description=(
             "Query the Index Rerum Faciendarum — ORGANVM's universal work registry. "
             "Filter by item_id, priority (P0-P3), domain (SYS/SGO/OBJ/...), "
@@ -2278,6 +2600,7 @@ TOOLS = [
                 },
             },
         },
+        annotations=_READ,
     ),
 ]
 
