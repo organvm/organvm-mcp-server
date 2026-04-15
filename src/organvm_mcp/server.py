@@ -23,6 +23,7 @@ from organvm_mcp.tools import (
     coordination,
     distill,
     ecosystem,
+    fabrica,
     governance,
     graph,
     health,
@@ -1234,6 +1235,126 @@ TOOLS = [
         description=(
             "View the tool checkout queue — who's running what right now. "
             "Shows heavy and medium lane occupancy."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+        annotations=_READ,
+    ),
+    # ── Fabrica tools (Cyclic Dispatch Protocol — SPEC-024) ─────────────
+    Tool(
+        name="organvm_fabrica_status",
+        title="Fabrica Relay Status",
+        description=(
+            "List active relay cycles in the Cyclic Dispatch Protocol. "
+            "Shows packets, current phase, dispatch records, and transition counts. "
+            "Filter by packet_id or current phase."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "packet_id": {
+                    "type": "string",
+                    "description": "Filter by packet ID or prefix",
+                },
+                "phase": {
+                    "type": "string",
+                    "enum": ["release", "catch", "handoff", "fortify", "complete"],
+                    "description": "Filter by current phase",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results (default 50)",
+                    "default": 50,
+                },
+            },
+        },
+        annotations=_READ,
+    ),
+    Tool(
+        name="organvm_fabrica_dispatch",
+        title="Fabrica Dispatch",
+        description=(
+            "Create a new relay dispatch. Creates a RelayPacket (RELEASE) and "
+            "optionally dispatches to an agent backend (copilot, jules, actions, "
+            "claude, launchagent, human). Defaults to dry-run mode."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "description": "Raw intention text for the relay packet",
+                },
+                "source": {
+                    "type": "string",
+                    "description": "Source channel (mcp, cli, dashboard, voice, scheduled)",
+                    "default": "mcp",
+                },
+                "organ_hint": {
+                    "type": "string",
+                    "description": "Target organ hint",
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Semantic tags for the packet",
+                },
+                "backend": {
+                    "type": "string",
+                    "enum": ["copilot", "jules", "actions", "claude", "launchagent", "human"],
+                    "description": "Agent backend to dispatch to (omit for release-only)",
+                },
+                "repo": {
+                    "type": "string",
+                    "description": "Target repository (owner/repo). Required if backend is set",
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Task title (defaults to first 72 chars of text)",
+                },
+                "body": {
+                    "type": "string",
+                    "description": "Task body/specification (defaults to full text)",
+                },
+                "dry_run": {
+                    "type": "boolean",
+                    "description": "Simulate dispatch without side effects (default true)",
+                    "default": True,
+                },
+            },
+            "required": ["text"],
+        },
+        annotations=_WRITE,
+    ),
+    Tool(
+        name="organvm_fabrica_log",
+        title="Fabrica Transition Log",
+        description=(
+            "Show phase transition history for relay cycles. "
+            "Each transition records from_phase, to_phase, reason, and timestamp."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "packet_id": {
+                    "type": "string",
+                    "description": "Filter to a specific packet (omit for all)",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max transitions to return (default 100)",
+                    "default": 100,
+                },
+            },
+        },
+        annotations=_READ,
+    ),
+    Tool(
+        name="organvm_fabrica_health",
+        title="Fabrica Health Report",
+        description=(
+            "Aggregate health report for the Cyclic Dispatch Protocol. "
+            "Returns counts by phase, dispatch status, and backend, plus "
+            "summary counts of active/completed/failed/pending_review dispatches."
         ),
         inputSchema={"type": "object", "properties": {}},
         annotations=_READ,
@@ -2693,6 +2814,11 @@ _DISPATCH = {
     "organvm_tool_checkout": lambda args: coordination.coordination_tool_checkout(**args),
     "organvm_tool_checkin": lambda args: coordination.coordination_tool_checkin(**args),
     "organvm_tool_queue": lambda args: coordination.coordination_tool_queue(),
+    # Fabrica (Cyclic Dispatch Protocol)
+    "organvm_fabrica_status": lambda args: fabrica.fabrica_status(**args),
+    "organvm_fabrica_dispatch": lambda args: fabrica.fabrica_dispatch(**args),
+    "organvm_fabrica_log": lambda args: fabrica.fabrica_log(**args),
+    "organvm_fabrica_health": lambda args: fabrica.fabrica_health(),
     # Ecosystem
     "organvm_ecosystem_profile": lambda args: ecosystem.ecosystem_profile(**args),
     "organvm_ecosystem_matrix": lambda args: ecosystem.ecosystem_matrix(**args),
