@@ -31,8 +31,9 @@ def mock_registry_data():
 
 
 class TestMetricsCompute:
+    @patch("organvm_mcp.tools.metrics.workspace_root", return_value=None)
     @patch("organvm_mcp.data.loader.load_registry")
-    def test_compute_returns_dict(self, mock_reg, mock_registry_data):
+    def test_compute_returns_dict(self, mock_reg, _mock_ws, mock_registry_data):
         mock_reg.return_value = mock_registry_data
         res = metrics.metrics_compute()
         assert isinstance(res, dict)
@@ -90,8 +91,9 @@ class TestMetricsEngagementTrend:
 
 
 class TestMetricsVars:
+    @patch("organvm_mcp.tools.metrics.workspace_root", return_value=None)
     @patch("organvm_mcp.data.loader.load_registry")
-    def test_vars_structure(self, mock_reg, mock_registry_data):
+    def test_vars_structure(self, mock_reg, _mock_ws, mock_registry_data):
         mock_reg.return_value = mock_registry_data
         res = metrics.metrics_vars()
         assert "variables" in res
@@ -101,11 +103,13 @@ class TestMetricsVars:
 
 class TestMetricsLint:
     @patch("organvm_engine.metrics.lint_vars.lint_workspace")
+    @patch("organvm_mcp.tools.metrics.workspace_root")
     @patch("organvm_mcp.data.loader.load_registry")
-    def test_lint_structure(self, mock_reg, mock_lint, mock_registry_data):
+    def test_lint_structure(self, mock_reg, mock_ws, mock_lint, mock_registry_data, tmp_path):
         from organvm_engine.metrics.lint_vars import LintReport
 
         mock_reg.return_value = mock_registry_data
+        mock_ws.return_value = tmp_path
         mock_lint.return_value = LintReport(files_scanned=10, files_clean=8)
         res = metrics.metrics_lint()
         assert res["files_scanned"] == 10

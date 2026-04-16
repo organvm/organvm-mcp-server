@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from organvm_mcp.data.paths import workspace_root
+
 
 def metrics_compute() -> dict[str, Any]:
     """System-wide metrics (repos, words, code, tests)."""
@@ -12,7 +14,7 @@ def metrics_compute() -> dict[str, Any]:
     from organvm_mcp.data.loader import load_registry
 
     registry = load_registry()
-    return compute_metrics(registry)
+    return compute_metrics(registry, workspace=workspace_root())
 
 
 def metrics_consilience() -> dict[str, Any]:
@@ -55,7 +57,7 @@ def metrics_vars() -> dict[str, Any]:
     from organvm_mcp.data.loader import load_registry
 
     registry = load_registry()
-    raw_metrics = compute_metrics(registry)
+    raw_metrics = compute_metrics(registry, workspace=workspace_root())
     variables = build_vars(raw_metrics, registry)
     return {
         "variables": variables,
@@ -70,12 +72,12 @@ def metrics_lint() -> dict[str, Any]:
     from organvm_engine.metrics.vars import build_vars
 
     from organvm_mcp.data.loader import load_registry
-    from organvm_mcp.data.paths import workspace_root
 
+    ws = workspace_root()
     registry = load_registry()
-    raw_metrics = compute_metrics(registry)
+    raw_metrics = compute_metrics(registry, workspace=ws)
     variables = build_vars(raw_metrics, registry)
-    report = lint_workspace(workspace_root(), variables)
+    report = lint_workspace(ws, variables)
     return {
         "files_scanned": report.files_scanned,
         "files_clean": report.files_clean,
