@@ -34,6 +34,7 @@ _governance_rules_cache: dict[tuple[str, str], dict] = {}
 _system_metrics_cache: dict[tuple[str, str], dict] = {}
 _pipeline_manifest_cache: dict[tuple[str, str], dict] = {}
 _conversation_corpus_surfaces_cache: dict[tuple[str, str], dict] = {}
+_corpus_graph_cache: dict[tuple[str, str], object] = {}
 
 
 def _cache_key(config: PathConfig | None = None) -> tuple[str, str]:
@@ -137,6 +138,48 @@ def load_conversation_corpus_surfaces(config: PathConfig | None = None) -> dict:
     return _conversation_corpus_surfaces_cache[key]
 
 
+def load_corpus_graph(config: PathConfig | None = None, live: bool = False):
+    """Load and cache the corpus knowledge graph.
+
+    Args:
+        config: Path configuration override.
+        live: If True, scan the filesystem instead of loading from artifact.
+
+    Returns:
+        CorpusGraph instance.
+    """
+    from organvm_engine.corpus.graph import CorpusGraph
+
+    key = _cache_key(config)
+
+    if live or key not in _corpus_graph_cache:
+        if live:
+            from organvm_engine.corpus.scanner import scan_corpus
+
+            cfg = resolve_path_config(config)
+            post_flood = cfg.corpus_dir().parent / "post-flood"
+            _corpus_graph_cache[key] = scan_corpus(
+                corpus_dir=post_flood,
+                workspace_root=cfg.workspace_root(),
+            )
+        else:
+            cfg = resolve_path_config(config)
+            graph_path = cfg.corpus_dir().parent / "post-flood" / "data" / "corpus-graph.json"
+            if graph_path.is_file():
+                _corpus_graph_cache[key] = CorpusGraph.load(graph_path)
+            else:
+                # Fall back to live scan if artifact missing
+                from organvm_engine.corpus.scanner import scan_corpus
+
+                post_flood = cfg.corpus_dir().parent / "post-flood"
+                _corpus_graph_cache[key] = scan_corpus(
+                    corpus_dir=post_flood,
+                    workspace_root=cfg.workspace_root(),
+                )
+
+    return _corpus_graph_cache[key]
+
+
 def reload(config: PathConfig | None = None) -> None:
     """Clear caches for one config pair or for all cached data."""
     if config is None:
@@ -147,6 +190,7 @@ def reload(config: PathConfig | None = None) -> None:
         _system_metrics_cache.clear()
         _pipeline_manifest_cache.clear()
         _conversation_corpus_surfaces_cache.clear()
+        _corpus_graph_cache.clear()
         return
 
     key = _cache_key(config)
@@ -157,6 +201,7 @@ def reload(config: PathConfig | None = None) -> None:
     _system_metrics_cache.pop(key, None)
     _pipeline_manifest_cache.pop(key, None)
     _conversation_corpus_surfaces_cache.pop(key, None)
+    _corpus_graph_cache.pop(key, None)
 
 
 def _read_json(path: Path) -> dict:

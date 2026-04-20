@@ -21,6 +21,7 @@ from organvm_mcp.tools import (
     content,
     context,
     coordination,
+    corpus,
     distill,
     ecosystem,
     fabrica,
@@ -450,6 +451,103 @@ TOOLS = [
                     "type": "string",
                     "enum": ["valid", "partial", "invalid"],
                     "description": "Filter by surface validation state",
+                },
+            },
+        },
+        annotations=_READ,
+    ),
+    # ── Corpus Knowledge Graph tools ────────────────────────────────
+    Tool(
+        name="organvm_corpus_concepts",
+        title="Corpus Concepts",
+        description=(
+            "List all concepts in the constitutional corpus knowledge graph "
+            "with implementation status. Shows which theoretical foundations "
+            "have been embodied in code and which remain unimplemented."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "pattern": {
+                    "type": "string",
+                    "description": "Regex filter on concept name (e.g., 'ammoi|svse')",
+                },
+                "live": {
+                    "type": "boolean",
+                    "description": "Scan filesystem instead of cached artifact",
+                    "default": False,
+                },
+            },
+        },
+        annotations=_READ,
+    ),
+    Tool(
+        name="organvm_corpus_trace",
+        title="Corpus Trace",
+        description=(
+            "Trace a concept through the knowledge graph: which transcripts "
+            "define it, which specs compile it, which repos implement it. "
+            "Reveals the full theory-to-implementation chain."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "concept": {
+                    "type": "string",
+                    "description": "Concept name (e.g., 'AMMOI', 'formation_protocol')",
+                },
+                "organ": {
+                    "type": "string",
+                    "description": "Filter implementations to a specific organ",
+                },
+                "live": {
+                    "type": "boolean",
+                    "description": "Scan filesystem instead of cached artifact",
+                    "default": False,
+                },
+            },
+            "required": ["concept"],
+        },
+        annotations=_READ,
+    ),
+    Tool(
+        name="organvm_corpus_gaps",
+        title="Corpus Gaps",
+        description=(
+            "Find concepts without implementation or with fragile single-repo "
+            "coverage. Reveals where formal theory outpaces operational embodiment."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "threshold": {
+                    "type": "integer",
+                    "description": "Minimum implementations for 'robust' (default 2)",
+                    "default": 2,
+                },
+                "live": {
+                    "type": "boolean",
+                    "description": "Scan filesystem instead of cached artifact",
+                    "default": False,
+                },
+            },
+        },
+        annotations=_COMPUTE,
+    ),
+    Tool(
+        name="organvm_corpus_stats",
+        title="Corpus Stats",
+        description=(
+            "Knowledge graph statistics: node/edge counts by type, concept "
+            "coverage ratio, average implementations per concept."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "live": {
+                    "type": "boolean",
+                    "description": "Scan filesystem instead of cached artifact",
+                    "default": False,
                 },
             },
         },
@@ -2755,6 +2853,11 @@ _DISPATCH = {
     "organvm_conversation_corpus_surfaces": lambda args: context.conversation_corpus_surfaces(
         **args,
     ),
+    # Corpus Knowledge Graph
+    "organvm_corpus_concepts": lambda args: corpus.corpus_concepts(**args),
+    "organvm_corpus_trace": lambda args: corpus.corpus_trace(**args),
+    "organvm_corpus_gaps": lambda args: corpus.corpus_gaps(**args),
+    "organvm_corpus_stats": lambda args: corpus.corpus_stats(**args),
     # Revenue
     "organvm_revenue_pipeline": lambda args: revenue.revenue_pipeline(),
     "organvm_revenue_products": lambda args: revenue.revenue_products(),
