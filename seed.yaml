@@ -13,6 +13,11 @@ metadata:
 
 produces: []
 
+implements:
+  - concept: traceability_matrix
+    zettel_source: "post-flood/specs/SPEC-006/grounding.md"
+    aspect: "tools/corpus.py — corpus_trace MCP tool providing live concept-to-implementation tracing"
+
 consumes:
   - source: meta-organvm/organvm-corpvs-testamentvm
     artifact: registry-v2.json
