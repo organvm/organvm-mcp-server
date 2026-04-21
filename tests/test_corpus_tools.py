@@ -159,3 +159,42 @@ class TestCorpusStats:
         assert result["coverage"]["total_concepts"] == 3
         assert result["coverage"]["implemented"] == 1
         assert result["coverage"]["coverage_ratio"] == round(1 / 3, 3)
+
+
+class TestCorpusCoverage:
+    def test_returns_all_concepts(self, mock_graph: CorpusGraph) -> None:
+        from organvm_mcp.tools.corpus import corpus_coverage
+
+        result = corpus_coverage()
+        assert result["total_concepts"] == 3
+
+    def test_classifies_fragile_and_robust(self, mock_graph: CorpusGraph) -> None:
+        from organvm_mcp.tools.corpus import corpus_coverage
+
+        result = corpus_coverage()
+        # ammoi has 2 impls → robust; era_model has 0, orphan has 0 → fragile
+        assert result["robust_count"] == 1
+        assert result["fragile_count"] == 2
+
+    def test_fragile_sorted_by_implementations(self, mock_graph: CorpusGraph) -> None:
+        from organvm_mcp.tools.corpus import corpus_coverage
+
+        result = corpus_coverage()
+        counts = [d["implementations"] for d in result["fragile"]]
+        assert counts == sorted(counts)
+
+
+class TestCorpusRepoConcepts:
+    def test_finds_concepts_for_repo(self, mock_graph: CorpusGraph) -> None:
+        from organvm_mcp.tools.corpus import corpus_repo_concepts
+
+        result = corpus_repo_concepts(repo="organvm-engine")
+        assert result["count"] == 1
+        assert result["concepts"][0]["concept"] == "ammoi"
+
+    def test_returns_empty_for_unknown_repo(self, mock_graph: CorpusGraph) -> None:
+        from organvm_mcp.tools.corpus import corpus_repo_concepts
+
+        result = corpus_repo_concepts(repo="nonexistent")
+        assert result["count"] == 0
+        assert result["concepts"] == []

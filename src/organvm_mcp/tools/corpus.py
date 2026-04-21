@@ -209,3 +209,43 @@ def corpus_stats(live: bool = False) -> dict[str, Any]:
     }
 
     return stats
+
+
+def corpus_coverage(live: bool = False) -> dict[str, Any]:
+    """Implementation depth and fragility analysis for all concepts.
+
+    Reports how many repos implement each concept and across how many organs,
+    sorted by fragility (fewest implementations first).
+    """
+    from organvm_mcp.data.loader import load_corpus_graph
+
+    graph = load_corpus_graph(live=live)
+    depth = graph.coverage_depth()
+
+    fragile = [d for d in depth if d["fragile"]]
+    robust = [d for d in depth if not d["fragile"]]
+
+    return {
+        "total_concepts": len(depth),
+        "fragile_count": len(fragile),
+        "robust_count": len(robust),
+        "fragile": fragile,
+        "robust": robust,
+    }
+
+
+def corpus_repo_concepts(
+    repo: str,
+    live: bool = False,
+) -> dict[str, Any]:
+    """Reverse lookup: what constitutional concepts does a repo implement?"""
+    from organvm_mcp.data.loader import load_corpus_graph
+
+    graph = load_corpus_graph(live=live)
+    concepts = graph.repo_concepts(repo)
+
+    return {
+        "repo": repo,
+        "count": len(concepts),
+        "concepts": concepts,
+    }

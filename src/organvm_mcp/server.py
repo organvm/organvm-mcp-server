@@ -553,6 +553,50 @@ TOOLS = [
         },
         annotations=_READ,
     ),
+    Tool(
+        name="organvm_corpus_coverage",
+        title="Corpus Coverage Depth",
+        description=(
+            "Implementation depth and fragility analysis for all concepts. "
+            "Reports how many repos implement each concept and across how many "
+            "organs, sorted by fragility (fewest implementations first)."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "live": {
+                    "type": "boolean",
+                    "description": "Scan filesystem instead of cached artifact",
+                    "default": False,
+                },
+            },
+        },
+        annotations=_READ,
+    ),
+    Tool(
+        name="organvm_corpus_repo_concepts",
+        title="Repo Concept Lookup",
+        description=(
+            "Reverse lookup: what constitutional concepts does a given repo "
+            "implement? Returns concept IDs, titles, and aspect descriptions."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string",
+                    "description": "Repo name (e.g. organvm-engine, organvm-ontologia)",
+                },
+                "live": {
+                    "type": "boolean",
+                    "description": "Scan filesystem instead of cached artifact",
+                    "default": False,
+                },
+            },
+            "required": ["repo"],
+        },
+        annotations=_READ,
+    ),
     # ── Revenue tools ────────────────────────────────────────────────
     Tool(
         name="organvm_revenue_pipeline",
@@ -2858,6 +2902,8 @@ _DISPATCH = {
     "organvm_corpus_trace": lambda args: corpus.corpus_trace(**args),
     "organvm_corpus_gaps": lambda args: corpus.corpus_gaps(**args),
     "organvm_corpus_stats": lambda args: corpus.corpus_stats(**args),
+    "organvm_corpus_coverage": lambda args: corpus.corpus_coverage(**args),
+    "organvm_corpus_repo_concepts": lambda args: corpus.corpus_repo_concepts(**args),
     # Revenue
     "organvm_revenue_pipeline": lambda args: revenue.revenue_pipeline(),
     "organvm_revenue_products": lambda args: revenue.revenue_products(),
