@@ -99,10 +99,8 @@ def network_suggest(repo: str | None = None) -> dict[str, Any]:
     from organvm_engine.network.metrics import (
         convergence_points,
         form_balance,
-        lens_balance,
         mirror_coverage,
     )
-    from organvm_engine.network.query import blind_spots
 
     maps = _load_maps()
     entries = read_ledger()
@@ -164,7 +162,7 @@ def network_suggest(repo: str | None = None) -> dict[str, Any]:
     return {"suggestions": suggestions, "count": len(suggestions)}
 
 
-def network_log(
+def network_log(  # noqa: PLR0917 - MCP schema mirrors a high-arity JSON tool
     organvm_repo: str,
     external_project: str,
     lens: str,
