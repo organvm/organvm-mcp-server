@@ -12,8 +12,8 @@ def test_infrastructure_audit_returns_dict():
             "ORGAN-I": {
                 "name": "Test",
                 "repositories": [],
-            }
-        }
+            },
+        },
     }
 
     with (
@@ -41,8 +41,8 @@ def test_infrastructure_audit_with_layer_filter():
             "ORGAN-I": {
                 "name": "Test",
                 "repositories": [],
-            }
-        }
+            },
+        },
     }
 
     with (
