@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-
 from organvm_engine.corpus.graph import CorpusGraph, GraphEdge, GraphNode
 
 
@@ -18,7 +17,10 @@ def _make_test_graph() -> CorpusGraph:
         uid="concept:ammoi",
         node_type="concept",
         title="AMMOI",
-        metadata={"description": "Adaptive Macro-Micro Ontological Index", "discovery": "cross_trunk"},
+        metadata={
+            "description": "Adaptive Macro-Micro Ontological Index",
+            "discovery": "cross_trunk",
+        },
     ))
     g.add_node(GraphNode(
         uid="concept:era_model",
