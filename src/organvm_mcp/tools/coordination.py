@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 
-def coordination_punch_in(
+def coordination_punch_in(  # noqa: PLR0917 - MCP schema mirrors a high-arity JSON tool
     agent: str = "claude",
     session_id: str = "",
     organs: list[str] | None = None,
