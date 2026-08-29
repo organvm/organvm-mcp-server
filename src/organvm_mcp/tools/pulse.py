@@ -212,7 +212,7 @@ def pulse_memory(
         return {"error": str(exc)}
 
 
-def pulse_record_insight(
+def pulse_record_insight(  # noqa: PLR0917 - MCP schema mirrors a high-arity JSON tool
     agent: str,
     category: str,
     content: str,
