@@ -16,7 +16,7 @@ def fabrica_status(
     return _impl(packet_id=packet_id, phase=phase, limit=limit)
 
 
-def fabrica_dispatch(
+def fabrica_dispatch(  # noqa: PLR0917 - MCP schema mirrors a high-arity JSON tool
     text: str = "",
     source: str = "mcp",
     organ_hint: str | None = None,

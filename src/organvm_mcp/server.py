@@ -98,7 +98,10 @@ _RELEASE = ToolAnnotations(
     idempotentHint=True,
     openWorldHint=False,
 )
-"""Destructive release: punch-out, tool-checkin. Removes state. Idempotent (releasing twice is fine)."""
+"""Destructive release: punch-out, tool-checkin. Removes state.
+
+Idempotent (releasing twice is fine).
+"""
 
 _GENERATE = ToolAnnotations(
     readOnlyHint=False,

@@ -35,7 +35,7 @@ def trivium_matrix(organ: str | None = None) -> dict[str, Any]:
     Args:
         organ: Optional CLI organ key to filter pairs involving that organ.
     """
-    from organvm_engine.trivium.dialects import dialect_for_organ, organ_for_dialect
+    from organvm_engine.trivium.dialects import organ_for_dialect
     from organvm_engine.trivium.translator import translation_matrix
 
     matrix = translation_matrix()
@@ -83,7 +83,7 @@ def trivium_scan(organ_a: str, organ_b: str) -> dict[str, Any]:
 
 def trivium_status() -> dict[str, Any]:
     """Trivium subsystem health summary."""
-    from organvm_engine.trivium.sources import dialect_data, isomorphism_data
+    from organvm_engine.trivium.sources import dialect_data
     from organvm_engine.trivium.taxonomy import TranslationTier, pairs_by_tier
 
     d_data = dialect_data()
